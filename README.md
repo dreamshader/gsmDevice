@@ -1,2 +1,3 @@
 # gsmDevice
-library to support gsm modules for arduino
+
+## Warning! Absolutely work in progress ...
