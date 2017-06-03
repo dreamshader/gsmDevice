@@ -326,6 +326,21 @@ String String::operator+=(String p)
 
 String String::operator+=(const char *p)
 {
+    char *_tmp;
+    if( p != NULL )
+    {
+        if( (_tmp = strdup(p)) != NULL )
+        {
+            if( pData != NULL )
+            {
+                pData = strcat(pData, p);
+            }
+            else
+            {
+                pData = _tmp;
+            }
+        }
+    }
 }
 
 
