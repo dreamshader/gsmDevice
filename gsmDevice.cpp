@@ -81,34 +81,6 @@
 // ----------------------------------------------------------------------
 //
 
-// ----------------------------------------------------------------------
-// void sigHandler (int status)
-//
-// handler for I/O signal asynchronous receive
-
-// ------------------------------------------------------------------------
-// Create a gsmDevice instance 
-//   - initial object creation
-//
-// Expected arguments:
-// - none
-//
-// Returns:
-// - nothing
-//
-// ------------------------------------------------------------------------
-//
-void gsmDevice::sigHandler (int status)
-{
-  if( !dataAvailable )
-  {
-    dataAvailable = true;
-  }
-}
-   
-
-
- 
 // ------------------------------------------------------------------------
 // int setupSerial(int fd, int speed)
 //
@@ -343,6 +315,16 @@ String String::operator+=(const char *p)
     }
 }
 
+String String::operator+(String p)
+{
+    return( operator+=(p) );
+}
+
+String String::operator+(const char *p)
+{
+    return( operator+=(p) );
+}
+
 
 #endif // linux
 
@@ -370,16 +352,8 @@ gsmDevice::gsmDevice()
     minorRelease = 4;
 
 #ifdef linux
-
-    void sigHandler (int status); 
-
-    dataAvailable = false;
-    /* install the signal handler before making the device asynchronous */
-    saio.sa_handler = sigHandler;
-    sigemptyset(&saio.sa_mask);
-    saio.sa_flags = 0;
-    saio.sa_restorer = NULL;
-    sigaction(SIGIO,&saio,NULL);
+    _deviceName = EMPTY_STRING;
+    _lastErrno = 0;
 #endif // linux
 
     _gsmDeviceType   = UNKNOWN_GSM_DEVICE;
@@ -775,41 +749,32 @@ INT16 gsmDevice::init(DEVICENAME deviceName, INT32 speed, INT32 timeout)
             else
             {
 
-
-                if( (_cmdPort._dev   =  open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_SYNC)) < 0 )
+                if( (_cmdPort._dev   =  open( deviceName.c_str(), O_RDWR | O_NOCTTY | O_SYNC)) < 0 )
                 {
-                  printf("Error opening %s: %s\n", "/dev/ttyUSB0", strerror(errno));
-                  return -1;
-                }
-
-                /* 38400N81 */
-                setupSerial(_cmdPort._dev, B9600);
-
-                //setSerialMin(_cmdPort._dev, 0);                /* set to pure timed read */
-                fcntl(_cmdPort._dev, F_SETOWN, getpid());
-                fcntl(_cmdPort._dev, F_SETFL, FASYNC);
-
-                _cmdPortType    = linuxDevice;
-                _ownStream      = false;
-                _cmdPortSpeed   = speed;
-                _cmdPortTimeout = timeout;
-                _devStatus      = initialized;
-
-                if( speed != NO_SPEED )
-                {
-//                    _cmdPort._hw->begin(speed);
+                    _lastErrno = errno;
+                    // retVal
                 }
                 else
                 {
-//                    _cmdPort._hw->begin( GSMDEVICE_DEF_CMD_SPEED );
-                }
+                    if( speed != NO_SPEED )
+                    {
+                        setupSerial(_cmdPort._dev, speed);
+                    }
+                    else
+                    {
+                        setupSerial(_cmdPort._dev, GSMDEVICE_DEF_CMD_SPEED);
+                    }
 
-                if( timeout != NO_TIMEOUT )
-                {
-//                    _cmdPort._hw->setTimeout(timeout);
-                }
+                    //setSerialMin(_cmdPort._dev, 0);
 
-                retVal = GSMDEVICE_SUCCESS;
+                    _cmdPortType    = linuxDevice;
+                    _ownStream      = false;
+                    _cmdPortSpeed   = speed;
+                    _cmdPortTimeout = timeout;
+                    _devStatus      = initialized;
+
+                    retVal = GSMDEVICE_SUCCESS;
+                }
             }
         }
     }
@@ -836,6 +801,11 @@ gsmDevice::~gsmDevice()
     if( _ownStream )
     {
         delete _cmdPort._sw;
+    }
+#else
+    if( _cmdPort._dev > 0 )
+    {
+        close( _cmdPort._dev );
     }
 #endif // linux
 }

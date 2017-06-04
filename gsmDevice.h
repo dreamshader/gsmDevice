@@ -13,6 +13,17 @@
   #include <SoftwareSerial.h>
 #else // on a linux platform
 
+#include <errno.h>
+#include <fcntl.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/signal.h>
+#include <sys/types.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 
 class String {
@@ -231,11 +242,9 @@ public:
 private:
 
 #ifdef linux
-    struct sigaction saio;
-    bool dataAvailable;
+    INT16 _lastErrno;
+    DEVICENAME _deviceName;
 #endif // linux
-
-    DEVICENAME devicename;
 
     gsmDevType  _gsmDeviceType;
 
