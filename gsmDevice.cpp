@@ -89,45 +89,45 @@
 // ------------------------------------------------------------------------
 int gsmDevice::setupSerial(int fd, int speed)
 {
-  struct termios tty;
-  int retVal = -1;
+    struct termios tty;
+    int retVal = -1;
 
-  if (tcgetattr(fd, &tty) < 0) 
-  {
-    printf("Error from tcgetattr: %s\n", strerror(errno));
-    retVal = GSMDEVICE_E_SETUP;
-  }
-  else
-  {
-    cfsetospeed(&tty, (speed_t)speed);
-    cfsetispeed(&tty, (speed_t)speed);
-
-    tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
-    tty.c_cflag &= ~CSIZE;
-    tty.c_cflag |= CS8;         /* 8-bit characters */
-    tty.c_cflag &= ~PARENB;     /* no parity bit */
-    tty.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
-    tty.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
-
-    /* setup for non-canonical mode */
-    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-    tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-    tty.c_oflag &= ~OPOST;
-
-    /* fetch bytes as they become available */
-    tty.c_cc[VMIN] = 1;
-    tty.c_cc[VTIME] = 1;
-
-    if (tcsetattr(fd, TCSANOW, &tty) != 0) 
+    if (tcgetattr(fd, &tty) < 0) 
     {
-      printf("Error from tcsetattr: %s\n", strerror(errno));
-      retVal = GSMDEVICE_E_SETUP;
+        retVal = GSMDEVICE_E_SETUP;
+        _lastErrno = errno;
     }
     else
     {
-      retVal = GSMDEVICE_SUCCESS;
+        cfsetospeed(&tty, (speed_t)speed);
+        cfsetispeed(&tty, (speed_t)speed);
+
+        tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
+        tty.c_cflag &= ~CSIZE;
+        tty.c_cflag |= CS8;         /* 8-bit characters */
+        tty.c_cflag &= ~PARENB;     /* no parity bit */
+        tty.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
+        tty.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
+
+        /* setup for non-canonical mode */
+        tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+        tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+        tty.c_oflag &= ~OPOST;
+
+        /* fetch bytes as they become available */
+        tty.c_cc[VMIN] = 1;
+        tty.c_cc[VTIME] = 1;
+
+        if (tcsetattr(fd, TCSANOW, &tty) != 0) 
+        {
+            retVal = GSMDEVICE_E_SETUP;
+            _lastErrno = errno;
+        }
+        else
+        {
+            retVal = GSMDEVICE_SUCCESS;
+        }
     }
-  }
 
   return( retVal );
 }
@@ -139,24 +139,23 @@ int gsmDevice::setupSerial(int fd, int speed)
 // ----------------------------------------------------------------------
 void gsmDevice::setSerialMin(int fd, int mcount)
 {
-  struct termios tty;
+    struct termios tty;
 
-  if (tcgetattr(fd, &tty) < 0) 
-  {
-      printf("Error tcgetattr: %s\n", strerror(errno));
-  }
-  else
-  {
-    tty.c_cc[VMIN] = mcount ? 1 : 0;
-    tty.c_cc[VTIME] = 5;        /* half second timer */
-
-    if (tcsetattr(fd, TCSANOW, &tty) < 0)
+    if (tcgetattr(fd, &tty) < 0) 
     {
-      printf("Error tcsetattr: %s\n", strerror(errno));
+        _lastErrno = errno;
     }
-  }
-}
+    else
+    {
+        tty.c_cc[VMIN] = mcount ? 1 : 0;
+        tty.c_cc[VTIME] = 5;        /* half second timer */
 
+        if (tcsetattr(fd, TCSANOW, &tty) < 0)
+        {
+            _lastErrno = errno;
+        }
+    }
+}
 
 
 
@@ -346,10 +345,9 @@ String String::operator+(const char *p)
 gsmDevice::gsmDevice()
 {
     majorRelease = 0;
-    minorRelease = 4;
+    minorRelease = 1;
 
 #ifdef linux
-    _deviceName = EMPTY_STRING;
     _lastErrno = 0;
 #endif // linux
 
@@ -908,13 +906,11 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
         switch( cmdMode )
         {
             case cmd_test:
-//                command = STRING(SMS_MSG_FORMAT_CMD_TEST) + STRING(CRLF_STRING);
                 command = SMS_MSG_FORMAT_CMD_TEST;
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_get:
-//                command = STRING(SMS_MSG_FORMAT_CMD_GET) + STRING(CRLF_STRING);
                 command = SMS_MSG_FORMAT_CMD_GET;
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
@@ -1364,9 +1360,9 @@ INT16 gsmDevice::uartReadResponse( int fd, char *pResponse, int maxLen, long tim
             {
                 if( rdLen < 0 )
                 {
-                    printf("Error from read: %d: %s\n", rdLen, strerror(errno));
                     tmOut = true;
                     retVal = GSMDEVICE_E_RESPONSE;
+                    _lastErrno = errno;
                 }
                 else
                 {
