@@ -64,6 +64,7 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 #endif // linux
 
 // #include <inttypes.h>
@@ -94,6 +95,7 @@ int gsmDevice::setupSerial(int fd, int speed)
   if (tcgetattr(fd, &tty) < 0) 
   {
     printf("Error from tcgetattr: %s\n", strerror(errno));
+    retVal = GSMDEVICE_E_SETUP;
   }
   else
   {
@@ -119,10 +121,11 @@ int gsmDevice::setupSerial(int fd, int speed)
     if (tcsetattr(fd, TCSANOW, &tty) != 0) 
     {
       printf("Error from tcsetattr: %s\n", strerror(errno));
+      retVal = GSMDEVICE_E_SETUP;
     }
     else
     {
-      retVal = 0;
+      retVal = GSMDEVICE_SUCCESS;
     }
   }
 
@@ -165,16 +168,6 @@ long millis()
 void delay(long msec)
 {
 
-}
-
-
-
-String::~String()
-{
-    if( pData != NULL )
-    {
-        free(pData);
-    }
 }
 
 
@@ -221,7 +214,8 @@ int String::trim()
         int done = 0;
         int startIdx;
         char *_tmp;
-        for( int i = strlen(pData); !done && i > 0; i-- )
+
+        for( int i = strlen(pData) - 1; !done && i > 0; i-- )
         {
             switch(pData[i])
             {
@@ -235,16 +229,19 @@ int String::trim()
             }
         }
 
-        for( int i = 0; !done && i < strlen(pData); i++ )
+        for( startIdx = 0, done = 0; !done && startIdx < strlen(pData); startIdx++ )
         {
-            switch(pData[i])
+            switch(pData[startIdx])
             {
                 case ' ':
                 case '\t':
                     break;
                 default:
                     done = 1;
-                    startIdx = i;
+                    if( startIdx )
+                    {
+                        startIdx--;
+                    }
                     break;
             }
         }
@@ -730,7 +727,7 @@ INT16 gsmDevice::init(DEVICENAME deviceName, INT32 speed, INT32 timeout)
 {
     INT16 retVal;
 
-    if( deviceName.length() ) // <= NO_SERIAL )
+    if( deviceName.length() == 0 ) // <= NO_SERIAL )
     {
         retVal = GSMDEVICE_E_P_SERIAL;
     }
@@ -752,28 +749,29 @@ INT16 gsmDevice::init(DEVICENAME deviceName, INT32 speed, INT32 timeout)
                 if( (_cmdPort._dev   =  open( deviceName.c_str(), O_RDWR | O_NOCTTY | O_SYNC)) < 0 )
                 {
                     _lastErrno = errno;
-                    // retVal
+                    retVal = GSMDEVICE_E_OPEN;
                 }
                 else
                 {
                     if( speed != NO_SPEED )
                     {
-                        setupSerial(_cmdPort._dev, speed);
+                        retVal = setupSerial(_cmdPort._dev, speed);
                     }
                     else
                     {
-                        setupSerial(_cmdPort._dev, GSMDEVICE_DEF_CMD_SPEED);
+                        retVal = setupSerial(_cmdPort._dev, GSMDEVICE_DEF_CMD_SPEED);
                     }
 
-                    //setSerialMin(_cmdPort._dev, 0);
+                    if( retVal == GSMDEVICE_SUCCESS )
+                    {
+                        setSerialMin(_cmdPort._dev, 0);
 
-                    _cmdPortType    = linuxDevice;
-                    _ownStream      = false;
-                    _cmdPortSpeed   = speed;
-                    _cmdPortTimeout = timeout;
-                    _devStatus      = initialized;
-
-                    retVal = GSMDEVICE_SUCCESS;
+                        _cmdPortType    = linuxDevice;
+                        _ownStream      = false;
+                        _cmdPortSpeed   = speed;
+                        _cmdPortTimeout = timeout;
+                        _devStatus      = initialized;
+                    }
                 }
             }
         }
@@ -910,11 +908,15 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
         switch( cmdMode )
         {
             case cmd_test:
-                command = STRING(SMS_MSG_FORMAT_CMD_TEST) + STRING(CRLF_STRING);
+//                command = STRING(SMS_MSG_FORMAT_CMD_TEST) + STRING(CRLF_STRING);
+                command = SMS_MSG_FORMAT_CMD_TEST;
+                command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_get:
-                command = STRING(SMS_MSG_FORMAT_CMD_GET) + STRING(CRLF_STRING);
+//                command = STRING(SMS_MSG_FORMAT_CMD_GET) + STRING(CRLF_STRING);
+                command = SMS_MSG_FORMAT_CMD_GET;
+                command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_set:
@@ -937,6 +939,7 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
 
         }
 
+
         if( retVal == GSMDEVICE_SUCCESS )
         {
             result = EMPTY_STRING;
@@ -945,6 +948,7 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
             {
                 case swSerial:
                 case hwSerial:
+                case linuxDevice:
                     if((retVal=sendCommand(command, true)) == GSMDEVICE_SUCCESS)
                     {
                         long lastCall = millis();
@@ -956,8 +960,10 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
                                 delay(GSMDEV_READ_DELAY);
                             }
 
+
                         } while( retVal != GSMDEVICE_SUCCESS &&
                                  millis() -lastCall < GSMDEV_READ_TIMEOUT );
+
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -1009,7 +1015,7 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
                     }
                     break;
                 case streamType:
-                case linuxDevice:
+//                case linuxDevice:
                     retVal = GSMDEVICE_E_SUPPORTED;
                     break;
                 case nodev:
@@ -1088,6 +1094,7 @@ INT16 gsmDevice::syncWithResponse( STRING cmd, STRING expect )
     int retVal;
     int triesDone;
     bool devReady;
+    int wrote;
     STRING response;
 
     if( _cmdPortType  == nodev ||
@@ -1107,63 +1114,14 @@ INT16 gsmDevice::syncWithResponse( STRING cmd, STRING expect )
         {
             if( (triesDone % GSMDEV_SYNC_MAX_CMD) == 0 )
             {
-                switch( _cmdPortType )
-                {
-#ifndef linux
-                    case swSerial:
-                        // TODO: check whether println works
-                        _cmdPort._sw->println(cmd);
-                        break;
-                    case hwSerial:
-                        // TODO: check whether println works
-                        _cmdPort._hw->println(cmd);
-                        break;
-                    case streamType:
-                        break;
-#else
-                    case linuxDevice:
-                        break;
-#endif // linux
-                    case nodev:
-                    default:
-                        retVal = GSMDEVICE_E_INIT;
-                }
+                sendCommand( cmd, false );
             }
 
-            switch( _cmdPortType )
+            readResponse( response, false );
+//            response.trim();
+            if(response.indexOf(expect) > 0)
             {
-#ifndef linux
-                case swSerial:
-                    if( _cmdPort._sw->available() )
-                    {
-                        response = _cmdPort._sw->readString();
-                        response.trim();
-                        if(response.indexOf(expect) > 0)
-                        {
-                            devReady = true;
-                        }
-                    }
-                    break;
-                case hwSerial:
-                    if( _cmdPort._hw->available() )
-                    {
-                        response = _cmdPort._hw->readString();
-                        response.trim();
-                        if(response.indexOf(expect) > 0)
-                        {
-                            devReady = true;
-                        }
-                    }
-                    break;
-                case streamType:
-                    break;
-#else // linux
-                case linuxDevice:
-                    break;
-#endif // linux
-                case nodev:
-                default:
-                    break;
+                devReady = true;
             }
 
             delay(GSMDEV_SYNC_DELAY);
@@ -1204,6 +1162,7 @@ INT16 gsmDevice::syncWithResponse( STRING cmd, STRING expect )
 //
 INT16 gsmDevice::sendCommand( STRING cmd, BOOL flushBefore )
 {
+
     int retVal;
     UINT16 wroteBytes;
 
@@ -1252,7 +1211,15 @@ INT16 gsmDevice::sendCommand( STRING cmd, BOOL flushBefore )
                 break;
 #else
             case linuxDevice:
-                retVal = GSMDEVICE_E_SUPPORTED;
+                wroteBytes = write(_cmdPort._dev, cmd.c_str(), cmd.length() ); 
+                if( wroteBytes >= cmd.length() )
+                {
+                    retVal = GSMDEVICE_SUCCESS;
+                }
+                else
+                {
+                    retVal = GSMDEVICE_E_SEND;
+                }
                 break;
 #endif // linux
             case nodev:
@@ -1284,6 +1251,11 @@ INT16 gsmDevice::sendCommand( STRING cmd, BOOL flushBefore )
 //
 INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter )
 {
+
+#ifdef linux
+    char rawData[512];
+#endif // linux
+
     int retVal;
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1343,7 +1315,17 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter )
                 break;
 #else
             case linuxDevice:
-                retVal = GSMDEVICE_E_SUPPORTED;
+                memset( rawData, '\0', sizeof(rawData) );
+                retVal = uartReadResponse( _cmdPort._dev, rawData, sizeof(rawData), 1000 );
+                if( strlen(rawData) )
+                {
+                    response = String( (const char*) rawData);
+                    retVal = GSMDEVICE_SUCCESS;
+                }
+                else
+                {
+                    retVal = GSMDEVICE_E_RESPONSE;
+                }
                 break;
 #endif // linux
             case nodev:
@@ -1356,6 +1338,63 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter )
     return( _lastError = retVal );
 }
 
+#ifdef linux
+
+INT16 gsmDevice::uartReadResponse( int fd, char *pResponse, int maxLen, long timeout )
+{
+    int retVal;
+    int rdLen;
+    bool tmOut;
+    time_t now;
+
+    if( pResponse != NULL )
+    {
+        time(&now);
+
+        tmOut = false;
+        do
+        {
+            rdLen = read(fd, pResponse, maxLen);
+            if( rdLen > 0 )
+            {
+                pResponse += rdLen;
+                maxLen -= rdLen;
+            }
+            else
+            {
+                if( rdLen < 0 )
+                {
+                    printf("Error from read: %d: %s\n", rdLen, strerror(errno));
+                    tmOut = true;
+                    retVal = GSMDEVICE_E_RESPONSE;
+                }
+                else
+                {
+                    delay(100);
+                }
+            }
+
+            if( timeout != NO_TIMEOUT )
+            {
+                if( time(NULL) - now >= (timeout / 1000) )
+                {
+                    tmOut = true;
+                    retVal = GSMDEVICE_E_RESPONSE;
+                }
+            }
+
+        } while( !tmOut && rdLen > 0 );
+    }
+    else
+    {
+      retVal = GSMDEVICE_E_P_NULL;
+    }
+
+    return( retVal );
+
+}
+
+#endif // linux
 
 
 // ////////////////////////////////////////////////////////////////////////

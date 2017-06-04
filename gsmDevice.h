@@ -32,7 +32,7 @@ private:
     char* pData;
 
 public:
-    ~String();
+    ~String(){};
     String();
     String( const char* p);
     String( int v );
@@ -63,7 +63,7 @@ extern "C" {
 #define GSMDEV_SYNC_MAX_CMD     15
 #define GSMDEV_SYNC_MAX_TOTAL  100
 #define GSMDEV_SYNC_DELAY      100
-#define GSMDEV_SYNC_CMD        "AT"
+#define GSMDEV_SYNC_CMD        "AT\r\n"
 #define GSMDEV_SYNC_RSP        "OK"
 #define GSMDEV_READ_TIMEOUT  30000   // up to 30 sec. response time
 #define GSMDEV_READ_DELAY      100
@@ -91,6 +91,7 @@ extern "C" {
 #define GSMDEVICE_E_P_TMOUT    -13
 #define GSMDEVICE_E_P_SERIAL   -14
 #define GSMDEVICE_E_P_STREAM   -15
+#define GSMDEVICE_E_P_NULL     -16
 
 #define GSMDEVICE_E_INIT       -30
 #define GSMDEVICE_E_RESPONSE   -31
@@ -99,6 +100,8 @@ extern "C" {
 #define GSMDEVICE_E_SEND       -34
 #define GSMDEVICE_E_MATCH      -35
 #define GSMDEVICE_E_CMD_MODE   -36
+#define GSMDEVICE_E_OPEN       -37
+#define GSMDEVICE_E_SETUP      -38
 
 
 #define GSMDEVICE_E_CME       -100
@@ -282,7 +285,8 @@ public:
     INT16 init(SW_SERIAL *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT);
     INT16 init(HW_SERIAL *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT);
 #else // linux platform
-    INT16 init(DEVICENAME deviceName, INT32 speed, INT32 timeout);
+    INT16 init(DEVICENAME deviceName, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);
+    INT16 uartReadResponse( int fd, char *pResponse, int maxLen, long timeout );
 #endif // linux
 
     INT16 flush();
