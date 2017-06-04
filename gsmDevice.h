@@ -114,26 +114,27 @@ extern "C" {
 //
 // GSM response messages
 
-#define GSMDEVICE_OK_MSG          "OK"
-#define GSMDEVICE_E_CME_MSG       "+CME ERROR:"
-#define GSMDEVICE_E_CMS_MSG       "+CMS ERROR:"
+#define GSMDEVICE_OK_MSG            "OK"
+#define GSMDEVICE_E_CME_MSG         "+CME ERROR:"
+#define GSMDEVICE_E_CMS_MSG         "+CMS ERROR:"
 
 
 //
 // GSM response scan format 
 
-#define GSMDEVICE_E_CME_SCAN_STR  "+CME ERROR:%d"
-#define GSMDEVICE_E_CMS_SCAN_STR  "+CMS ERROR:%d"
+#define GSMDEVICE_E_CME_SCAN_STR    "+CME ERROR:%d"
+#define GSMDEVICE_E_CMS_SCAN_STR    "+CMS ERROR:%d"
 
 
 //
 // GSM AT commands
 
-#define SMS_MSG_FORMAT_CMD_TEST  "AT+CMGF=?"
-#define SMS_MSG_FORMAT_CMD_GET   "AT+CMGF?"
-#define SMS_MSG_FORMAT_CMD_SET   "AT+CMGF="
+#define SMS_MSG_FORMAT_CMD_TEST     "AT+CMGF=?"
+#define SMS_MSG_FORMAT_CMD_GET      "AT+CMGF?"
+#define SMS_MSG_FORMAT_CMD_SET      "AT+CMGF="
 
-
+#define RESULT_CODE_FORMAT_CMD_GET  "ATV"
+#define RESULT_CODE_FORMAT_CMD_SET  "ATV"
 
 
 //
@@ -221,6 +222,12 @@ enum smsMessageFormat
 };
 
 
+enum cmdResultCodeFormat
+{
+     cmdResultNumeric = 0,
+     cmdResultText    = 1
+};
+
 struct _gsm_errcode2msg {
     INT16 errcode;
     const char *pMessage;
@@ -246,7 +253,6 @@ private:
 
 #ifdef linux
     INT16 _lastErrno;
-    DEVICENAME _deviceName;
 #endif // linux
 
     gsmDevType  _gsmDeviceType;
@@ -296,6 +302,8 @@ public:
     //
     INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, 
                         STRING &result );
+    INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
+                        STRING &result );
 
  
 
@@ -305,6 +313,7 @@ private:
     INT16 syncWithResponse( STRING cmd,  STRING expect);
     INT16 readResponse( STRING &response, BOOL flushAfter );
     INT16 sendCommand( STRING cmd, BOOL flushBefore );
+    INT16 checkResponse( STRING result, STRING &dummy );
     INT16 cmsErrorMsg( STRING &errmsg );
     INT16 cmeErrorMsg( STRING &errmsg );
     INT16 parseResponse( STRING response, STRING expect, STRING &result );

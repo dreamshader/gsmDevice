@@ -65,9 +65,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+#include <sys/time.h>
 #endif // linux
 
-// #include <inttypes.h>
 
 #include "gsmDevice.h"
 
@@ -161,12 +161,29 @@ void gsmDevice::setSerialMin(int fd, int mcount)
 
 long millis()
 {
-    return 0L;
+    long long milliseconds;
+
+    struct timeval te; 
+    gettimeofday(&te, NULL); // get current time
+    milliseconds = te.tv_sec*1000LL + te.tv_usec/1000; // caculate milliseconds
+//    printf("milliseconds: %lld\n", milliseconds);
+    return (long) milliseconds;
 }
 
 void delay(long msec)
 {
+    long firstCall;
+    bool done;
 
+    firstCall = millis();
+    done = false;
+    do
+    {
+        if( millis() >= (firstCall + msec) )
+        {
+            done = true;
+        }
+    } while( !done );
 }
 
 
@@ -868,6 +885,119 @@ INT16 gsmDevice::flush()
     return( _lastError = retVal );
 }
 
+
+
+
+
+
+
+
+//
+// ************************************************************************
+//
+// set result code format
+// - set the format of response of commands
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode     get or set
+// - cmdResultCodeFormat *pFmt  holds new/current value
+// - STRING &result             reference to hold result string
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
+                               STRING &result )
+{
+    int retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        switch( cmdMode )
+        {
+            case cmd_get:
+                command = RESULT_CODE_FORMAT_CMD_GET;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_set:
+                if( *pFmt == cmdResultNumeric ||
+                    *pFmt == cmdResultText    )
+                {
+                    command = STRING(RESULT_CODE_FORMAT_CMD_SET);
+                    command += STRING(*pFmt);
+                    command += STRING(CRLF_STRING);
+                    retVal = GSMDEVICE_SUCCESS;
+                }
+                else
+                {
+                    retVal = GSMDEVICE_E_CMD_MODE;
+                }
+                break;
+            default:
+                retVal = GSMDEVICE_E_CMD_MODE;
+                break;
+
+        }
+
+
+        if( retVal == GSMDEVICE_SUCCESS )
+        {
+            result = EMPTY_STRING;
+
+            switch( _cmdPortType )
+            {
+                case swSerial:
+                case hwSerial:
+                case linuxDevice:
+                    if((retVal=sendCommand(command, true)) == GSMDEVICE_SUCCESS)
+                    {
+                        long lastCall = millis();
+                        do
+                        {
+                            if((retVal = readResponse( result, false )) != 
+                                GSMDEVICE_SUCCESS )
+                            {
+                                delay(GSMDEV_READ_DELAY);
+                            }
+
+
+                        } while( retVal != GSMDEVICE_SUCCESS &&
+                                 millis() -lastCall < GSMDEV_READ_TIMEOUT );
+
+                        if( retVal == GSMDEVICE_SUCCESS )
+                        {
+                            retVal = checkResponse( result, dummy );
+                        }
+                    }
+                    break;
+                case streamType:
+                    retVal = GSMDEVICE_E_SUPPORTED;
+                    break;
+                case nodev:
+                default:
+                    retVal = GSMDEVICE_E_INIT;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
 //
 // ************************************************************************
 //
@@ -960,58 +1090,14 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
                         } while( retVal != GSMDEVICE_SUCCESS &&
                                  millis() -lastCall < GSMDEV_READ_TIMEOUT );
 
-
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
-                            // result.length()
-                            if(parseResponse( result, GSMDEVICE_OK_MSG, 
-                                   dummy ) != GSMDEVICE_SUCCESS)
-                            {
-                                if(parseResponse( result, GSMDEVICE_E_CME_MSG, 
-                                       dummy ) != GSMDEVICE_SUCCESS)
-                                {
-                                    if(parseResponse(result, GSMDEVICE_E_CMS_MSG, 
-                                           dummy ) != GSMDEVICE_SUCCESS)
-                                    {
-                                        retVal = GSMDEVICE_ERROR;
-                                    }
-                                    else
-                                    {
-                                        if( (retVal = scanCMSErrNum( result, 
-                                             errNo )) == GSMDEVICE_SUCCESS )
-                                        {
-                                            _cmsLastError = errNo;
-                                            retVal = GSMDEVICE_E_CMS;
-                                        }
-                                        else
-                                        {
-                                            retVal = GSMDEVICE_ERROR;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    if( (retVal = scanCMEErrNum( result, 
-                                         errNo )) == GSMDEVICE_SUCCESS )
-                                    {
-                                        _cmeLastError = errNo;
-                                        retVal = GSMDEVICE_E_CME;
-                                    }
-                                    else
-                                    {
-                                        retVal = GSMDEVICE_ERROR;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                retVal = GSMDEVICE_SUCCESS;
-                            }
+                            retVal = checkResponse( result, dummy );
+// ----------- did cut here
                         }
                     }
                     break;
                 case streamType:
-//                case linuxDevice:
                     retVal = GSMDEVICE_E_SUPPORTED;
                     break;
                 case nodev:
@@ -1068,6 +1154,65 @@ STRING gsmDevice::getError()
 // 
 // ----------------------------- PRIVATE STUFF ----------------------------
 //
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// get status
+//   - check response to detect status of a command
+//
+// Expected arguments:
+// - none
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT     instance is not initialized
+// - GSMDEVICE_E_RESPONSE gsm device (e.g. gsm modem) did not respond
+//
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::checkResponse( STRING result, STRING &dummy )
+{
+    INT16 retVal;
+    INT16 errNo;
+
+    // result.length()
+    if((retVal = parseResponse( result, GSMDEVICE_OK_MSG, dummy )) != GSMDEVICE_SUCCESS)
+    {
+        if((retVal = parseResponse( result, GSMDEVICE_E_CME_MSG, dummy )) != GSMDEVICE_SUCCESS)
+        {
+            if((retVal = parseResponse(result, GSMDEVICE_E_CMS_MSG, dummy )) != GSMDEVICE_SUCCESS)
+            {
+                retVal = GSMDEVICE_ERROR;
+            }
+            else
+            {
+                if( (retVal = scanCMSErrNum( result, errNo )) == GSMDEVICE_SUCCESS )
+                {
+                    _cmsLastError = errNo;
+                    retVal = GSMDEVICE_E_CMS;
+                }
+                else
+                {
+                    retVal = GSMDEVICE_ERROR;
+                }
+            }
+        }
+        else
+        {
+            if( (retVal = scanCMEErrNum( result, errNo )) == GSMDEVICE_SUCCESS )
+            {
+                _cmeLastError = errNo;
+                retVal = GSMDEVICE_E_CME;
+            }
+            else
+            {
+                retVal = GSMDEVICE_ERROR;
+            }
+        }
+    }
+    return ( retVal );
+}
 
 // ////////////////////////////////////////////////////////////////////////
 //
@@ -1312,7 +1457,7 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter )
 #else
             case linuxDevice:
                 memset( rawData, '\0', sizeof(rawData) );
-                retVal = uartReadResponse( _cmdPort._dev, rawData, sizeof(rawData), 1000 );
+                retVal = uartReadResponse( _cmdPort._dev, rawData, sizeof(rawData), 2000 );
                 if( strlen(rawData) )
                 {
                     response = String( (const char*) rawData);
@@ -1336,6 +1481,25 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter )
 
 #ifdef linux
 
+// ////////////////////////////////////////////////////////////////////////
+//
+// read response 
+//   - read the current response of the attached gsm device
+//
+// Expected arguments:
+// - int  fd          filedescriptor to open device
+// - char *pResponse  buffer to hold device response
+// - int  maxLen      size of buffer
+// - long timeout     only test at this time ... timeout value
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_P_NULL     buffer points to NULL
+// - GSMDEVICE_E_RESPONSE   gsm device (e.g. gsm modem) did not respond
+//
+// ////////////////////////////////////////////////////////////////////////
+//
 INT16 gsmDevice::uartReadResponse( int fd, char *pResponse, int maxLen, long timeout )
 {
     int retVal;
@@ -1395,7 +1559,7 @@ INT16 gsmDevice::uartReadResponse( int fd, char *pResponse, int maxLen, long tim
 
 // ////////////////////////////////////////////////////////////////////////
 //
-// retieve CME error message 
+// retrieve CME error message 
 //   - read the current response of the attached gsm device
 //
 // Expected arguments:
@@ -1506,7 +1670,7 @@ INT16 gsmDevice::cmeErrorMsg( STRING &errmsg )
 
 // ////////////////////////////////////////////////////////////////////////
 //
-// retieve CMS error message 
+// retrieve CMS error message 
 //   - read the current response of the attached gsm device
 //
 // Expected arguments:
@@ -1749,6 +1913,52 @@ INT16 gsmDevice::scanCMEErrNum( STRING response, INT16 &errNo )
 // 
 #ifdef NEVERDEF
 
+// ----------- did cut here
+
+                            // result.length()
+                            if(parseResponse( result, GSMDEVICE_OK_MSG, 
+                                   dummy ) != GSMDEVICE_SUCCESS)
+                            {
+                                if(parseResponse( result, GSMDEVICE_E_CME_MSG, 
+                                       dummy ) != GSMDEVICE_SUCCESS)
+                                {
+                                    if(parseResponse(result, GSMDEVICE_E_CMS_MSG, 
+                                           dummy ) != GSMDEVICE_SUCCESS)
+                                    {
+                                        retVal = GSMDEVICE_ERROR;
+                                    }
+                                    else
+                                    {
+                                        if( (retVal = scanCMSErrNum( result, 
+                                             errNo )) == GSMDEVICE_SUCCESS )
+                                        {
+                                            _cmsLastError = errNo;
+                                            retVal = GSMDEVICE_E_CMS;
+                                        }
+                                        else
+                                        {
+                                            retVal = GSMDEVICE_ERROR;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if( (retVal = scanCMEErrNum( result, 
+                                         errNo )) == GSMDEVICE_SUCCESS )
+                                    {
+                                        _cmeLastError = errNo;
+                                        retVal = GSMDEVICE_E_CME;
+                                    }
+                                    else
+                                    {
+                                        retVal = GSMDEVICE_ERROR;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                retVal = GSMDEVICE_SUCCESS;
+                            }
 
 
 // 
