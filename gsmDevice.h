@@ -60,9 +60,9 @@ extern "C" {
 //
 // internal used definitions
 
-#define GSMDEV_SYNC_MAX_CMD     15
-#define GSMDEV_SYNC_MAX_TOTAL  100
-#define GSMDEV_SYNC_DELAY      100
+#define GSMDEV_SYNC_MAX_CMD     10
+#define GSMDEV_SYNC_MAX_TOTAL  200
+#define GSMDEV_SYNC_DELAY       20
 #define GSMDEV_SYNC_CMD        "AT\r\n"
 #define GSMDEV_SYNC_RSP        "OK"
 #define GSMDEV_READ_TIMEOUT  30000   // up to 30 sec. response time
@@ -136,6 +136,9 @@ extern "C" {
 #define RESULT_CODE_FORMAT_CMD_GET  "ATV"
 #define RESULT_CODE_FORMAT_CMD_SET  "ATV"
 
+#define OPERATOR_SELECT_CMD_TEST    "AT+COPS=?"
+#define OPERATOR_SELECT_CMD_GET     "AT+COPS?"
+#define OPERATOR_SELECT_CMD_SET     "AT+COPS="
 
 //
 // misc. definitons
@@ -228,6 +231,17 @@ enum cmdResultCodeFormat
      cmdResultText    = 1
 };
 
+
+enum opSelectMode
+{
+    opSelectAuto       = 0,
+    opSelectManual     = 1,
+    opSelectDeregister = 2,
+    opSelectFormatOnly = 3,
+    opSelectManualAuto = 4
+};
+
+
 struct _gsm_errcode2msg {
     INT16 errcode;
     const char *pMessage;
@@ -252,6 +266,7 @@ public:
 private:
 
 #ifdef linux
+    time_t _startTime;
     INT16 _lastErrno;
 #endif // linux
 
@@ -293,6 +308,7 @@ public:
 #else // linux platform
     INT16 init(DEVICENAME deviceName, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);
     INT16 uartReadResponse( int fd, char *pResponse, int maxLen, long timeout );
+    INT16 uartReadString( int fd, char *pResponse, int maxLen, int *pRead, long timeout );
 #endif // linux
 
     INT16 flush();
@@ -304,6 +320,8 @@ public:
                         STRING &result );
     INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
                         STRING &result );
+    INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, 
+                                  STRING &result );
 
  
 
@@ -311,8 +329,8 @@ private:
 
     INT16 synchronize( STRING cmd, STRING expect );
     INT16 syncWithResponse( STRING cmd,  STRING expect);
-    INT16 readResponse( STRING &response, BOOL flushAfter );
-    INT16 sendCommand( STRING cmd, BOOL flushBefore );
+    INT16 readResponse( STRING &response, BOOL flushAfter, INT32 timeout );
+    INT16 sendCommand( STRING cmd, BOOL flushBefore, INT32 timeout );
     INT16 checkResponse( STRING result, STRING &dummy );
     INT16 cmsErrorMsg( STRING &errmsg );
     INT16 cmeErrorMsg( STRING &errmsg );
@@ -321,7 +339,8 @@ private:
     INT16 scanCMEErrNum( STRING response, INT16 &errNo );
 
 #ifdef linux
-    void sigHandler (int status);
+    long millis();
+    void delay(long msec);
     int setupSerial(int fd, int speed);
     void setSerialMin(int fd, int mcount);
 #endif // linux
