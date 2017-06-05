@@ -1,6 +1,12 @@
 # gsmDevice
 
-## Warning! Absolutely work in progress ...
+### A class for Arduino and Linux to handle a gsm module like a A6 gsm breakout board.
+
+### Warning! This is an absolutely work in progress project. For most stable version use pre0.1 branch/pre-release
+
+
+----------
+
 
 ### **class reference:**
 
