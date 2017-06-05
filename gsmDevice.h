@@ -60,54 +60,55 @@ extern "C" {
 //
 // internal used definitions
 
-#define GSMDEV_SYNC_MAX_CMD     10
-#define GSMDEV_SYNC_MAX_TOTAL  200
-#define GSMDEV_SYNC_DELAY       20
-#define GSMDEV_SYNC_CMD        "AT\r\n"
-#define GSMDEV_SYNC_RSP        "OK"
-#define GSMDEV_READ_TIMEOUT  30000   // up to 30 sec. response time
-#define GSMDEV_READ_DELAY      100
+#define GSMDEV_SYNC_MAX_CMD            10
+#define GSMDEV_SYNC_MAX_TOTAL         200
+#define GSMDEV_SYNC_DELAY              20
+#define GSMDEV_SYNC_CMD               "AT\r\n"
+#define GSMDEV_SYNC_RSP               "OK"
+#define GSMDEV_READ_TIMEOUT         30000   // up to 30 sec. response time
+#define GSMDEV_READ_DELAY             100
 
 //
 // parameter values
 
-#define NULL_PIN                 0
-#define NULL_STREAM           NULL
-#define NO_SPEED                 0
-#define NO_TIMEOUT               0
-#define NO_SERIAL                0
+#define NULL_PIN                        0
+#define NULL_STREAM                  NULL
+#define NO_SPEED                        0
+#define NO_TIMEOUT                      0
+#define NO_SERIAL                       0
 
-#define GSMDEVICE_DEF_CMD_SPEED  9600
+#define GSMDEVICE_DEF_CMD_SPEED      9600
+#define GSMDEVICE_SWSERIAL_MAX_BAUD 19200
 
 //
 // unified error codes
 
-#define GSMDEVICE_SUCCESS        0   // no error
-#define GSMDEVICE_ERROR         -1   // unspecified/unknown error
+#define GSMDEVICE_SUCCESS               0   // no error
+#define GSMDEVICE_ERROR                -1   // unspecified/unknown error
 
-#define GSMDEVICE_E_P_RXPIN    -10
-#define GSMDEVICE_E_P_TXPIN    -11
-#define GSMDEVICE_E_P_SPEED    -12
-#define GSMDEVICE_E_P_TMOUT    -13
-#define GSMDEVICE_E_P_SERIAL   -14
-#define GSMDEVICE_E_P_STREAM   -15
-#define GSMDEVICE_E_P_NULL     -16
+#define GSMDEVICE_E_P_RXPIN           -10
+#define GSMDEVICE_E_P_TXPIN           -11
+#define GSMDEVICE_E_P_SPEED           -12
+#define GSMDEVICE_E_P_TMOUT           -13
+#define GSMDEVICE_E_P_SERIAL          -14
+#define GSMDEVICE_E_P_STREAM          -15
+#define GSMDEVICE_E_P_NULL            -16
 
-#define GSMDEVICE_E_INIT       -30
-#define GSMDEVICE_E_RESPONSE   -31
-#define GSMDEVICE_E_SUPPORTED  -32
-#define GSMDEVICE_E_DEV_TYPE   -33
-#define GSMDEVICE_E_SEND       -34
-#define GSMDEVICE_E_MATCH      -35
-#define GSMDEVICE_E_CMD_MODE   -36
-#define GSMDEVICE_E_OPEN       -37
-#define GSMDEVICE_E_SETUP      -38
+#define GSMDEVICE_E_INIT              -30
+#define GSMDEVICE_E_RESPONSE          -31
+#define GSMDEVICE_E_SUPPORTED         -32
+#define GSMDEVICE_E_DEV_TYPE          -33
+#define GSMDEVICE_E_SEND              -34
+#define GSMDEVICE_E_MATCH             -35
+#define GSMDEVICE_E_CMD_MODE          -36
+#define GSMDEVICE_E_OPEN              -37
+#define GSMDEVICE_E_SETUP             -38
 
 
-#define GSMDEVICE_E_CME       -100
-#define GSMDEVICE_E_CME_NOMSG -101
-#define GSMDEVICE_E_CMS       -200
-#define GSMDEVICE_E_CMS_NOMSG -201
+#define GSMDEVICE_E_CME              -100
+#define GSMDEVICE_E_CME_NOMSG        -101
+#define GSMDEVICE_E_CMS              -200
+#define GSMDEVICE_E_CMS_NOMSG        -201
 
 
 
@@ -139,6 +140,8 @@ extern "C" {
 #define OPERATOR_SELECT_CMD_TEST    "AT+COPS=?"
 #define OPERATOR_SELECT_CMD_GET     "AT+COPS?"
 #define OPERATOR_SELECT_CMD_SET     "AT+COPS="
+
+#define ECHO_COMMAND_CMD_SET        "ATE"
 
 //
 // misc. definitons
@@ -241,6 +244,12 @@ enum opSelectMode
     opSelectManualAuto = 4
 };
 
+enum cmdEcho
+{
+    cmdEchoOff = 0,
+    cmdEchoOn  = 1
+};
+
 
 struct _gsm_errcode2msg {
     INT16 errcode;
@@ -311,7 +320,7 @@ public:
     INT16 uartReadString( int fd, char *pResponse, int maxLen, int *pRead, long timeout );
 #endif // linux
 
-    INT16 flush();
+    INT16 inputFlush();
 
     //
     //  gsm commands supported
@@ -321,6 +330,8 @@ public:
     INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
                         STRING &result );
     INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, 
+                                  STRING &result );
+    INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, 
                                   STRING &result );
 
  
