@@ -13,11 +13,13 @@ Destructor. Deletes an instance of class gsmdevice.
 
 ***STRING getError();***
 Returns a string containing a description of the last error occured.
+
 **Note:** *Is not supported, yet.*
 
 ***INT16 begin(gsmDevType devType);***
 Begin communication with and initialize the attached GSM module.
 devType may be one of AI_A6 or AI_A7 as defined in gsmDevice.h.
+
 **Note:** *Only AI_A6 is supported, yet.*
 
 ***INT16 inputFlush();***
@@ -43,6 +45,7 @@ Depending of an error, that occurred, resultcode may differ.
 ***INT16 init(INT16 rxPin = NULL_PIN, INT16 txPin = NULL_PIN, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);***
 Expects two valid pins. These pins will be used as Rx and Tx for a Software-Serial connection to talk to the attached module.
 Except the pins the other parameter are optional. Default speed is 9600 baud, default timeout is around 200 ms.
+
 **Note:** *Software Serial is not very reliable above 19200 baud. You will get an error if you specify more than GSMDEVICE_SWSERIAL_MAX_BAUD.*
 
 If something went wrong, the returned value is one of
@@ -55,6 +58,7 @@ If something went wrong, the returned value is one of
 ***INT16 init(INT16 serialNo = NO_SERIAL, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);***
 Expects the number of UART to use. If serialNo is NO_SERIAL, the default, the first UART is used. On a MEGA2560 up to 4 UARTS (0 to 3) are available. 
 The parameters speed and timeout are optional, too. Default speed is 9600 baud, default timeout is around 200 ms.
+
 **Note:** *This method is not well tested an may contain faulty code. In addition, any other value than the default as serialNo will cause the error GSMDEVICE_E_SUPPORTED.*
 
 If something went wrong, the returned value is one of
@@ -91,6 +95,7 @@ If something went wrong, the returned value is one of
  - GSMDEVICE_E_P_TMOUT  (invalid value for timeout)
 
 **Note:** *None of these methods are tested, yet.*
+
 **Note:** *Init with an open stream is not supported at this time.*
 
 
@@ -124,6 +129,7 @@ Only the second parameter differs in type and meaning. See specific command for 
 
 **Quite all gsm commands return GSMDEVICE_SUCCESS the on successful operation.**
 Exception: if an error occurred, a specific error code is returned. See each command for more detailed description.
+
 **Note:** *Not all gsm commands support all three command modes cmd_test, cmd_get and cmd_set. You will get the error GSMDEVICE_E_CMD_MODE if supplied command mode is not supported.*
 
 ----------
