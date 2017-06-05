@@ -60,10 +60,13 @@ inputFlush() returns GSMDEVICE_SUCCESS. If something went wrong, one of the foll
 
 **The following init-methods are availabe in the Arduino-IDE only:**
 
-----------
 The init method tries to communicate with the attached gsm device and initializese it for further operations.
 In case of success each init returns GSMDEVICE_SUCCESS. 
 Depending of an error, that occurred, resultcode may differ. 
+
+
+----------
+
 
 ***INT16 init(INT16 rxPin = NULL_PIN, INT16 txPin = NULL_PIN, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);***
 

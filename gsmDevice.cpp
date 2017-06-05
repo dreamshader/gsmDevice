@@ -897,13 +897,14 @@ INT16 gsmDevice::inputFlush()
 //
 // ************************************************************************
 //
-// set result code format
+// set result code format (ATV)
 // - set the format of response of commands
 //
 // Expected arguments:
 // - gsmCommandMode cmdMode     get or set
 // - cmdResultCodeFormat *pFmt  holds new/current value
 // - STRING &result             reference to hold result string
+// - void *pParam               pointer to additional parameters
 // 
 // Returns an INT16 as status code:
 // - GSMDEVICE_SUCCESS on succes, or
@@ -915,7 +916,7 @@ INT16 gsmDevice::inputFlush()
 // ************************************************************************
 //
 INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
-                               STRING &result )
+                               STRING &result, void *pParam )
 {
     INT16 retVal;
     STRING command = EMPTY_STRING;
@@ -992,13 +993,14 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
 //
 // ************************************************************************
 //
-// set sms format
+// set sms format (AT+CMGF)
 // - set the format of short messages
 //
 // Expected arguments:
 // - gsmCommandMode cmdMode   get or set
 // - smsMessageFormat *pFmt   holds new/current value
 // - STRING &result           reference to hold result string
+// - void *pParam             pointer to additional parameters
 // 
 // Returns an INT16 as status code:
 // - GSMDEVICE_SUCCESS on succes, or
@@ -1010,7 +1012,7 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
 // ************************************************************************
 //
 INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, 
-                               STRING &result )
+                               STRING &result, void *pParam )
 {
     INT16 retVal;
     STRING command = EMPTY_STRING;
@@ -1092,13 +1094,14 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
 //
 // ************************************************************************
 //
-// operator selects
+// operator selects (AT+COPS)
 // - retrieve/set operator connected to
 //
 // Expected arguments:
 // - gsmCommandMode cmdMode   get or set
 // - opSelectMode *pFmt       holds new/current value
 // - STRING &result           reference to hold result string
+// - void *pParam             pointer to additional parameters
 // 
 // Returns an INT16 as status code:
 // - GSMDEVICE_SUCCESS on succes, or
@@ -1106,11 +1109,12 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
 // - GSMDEVICE_E_INIT      instance is not initialized
 // - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
 // - GSMDEVICE_E_CMD_MODE  invalid command mode
+// - GSMDEVICE_E_P_PARAM   pointer to additional parameters is NULL
 //
 // ************************************************************************
 //
 INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, 
-                                  STRING &result )
+                                  STRING &result, void *pParam )
 {
     INT16 retVal;
     STRING command = EMPTY_STRING;
@@ -1192,16 +1196,18 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt,
 
     return( _lastError = retVal );
 }
+
 //
 // ************************************************************************
 //
-// echo commands
+// echo commands (ATE)
 // - enable/disable echo of commands sent to attached gsm device
 //
 // Expected arguments:
 // - gsmCommandMode cmdMode   get or set
-// - opSelectMode *pFmt       holds new/current value
+// - cmdEcho *pFmt            holds new/current value
 // - STRING &result           reference to hold result string
+// - void *pParam             pointer to additional parameters
 // 
 // Returns an INT16 as status code:
 // - GSMDEVICE_SUCCESS on succes, or
@@ -1213,7 +1219,7 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt,
 // ************************************************************************
 //
 INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, 
-                                  STRING &result )
+                                  STRING &result, void *pParam )
 {
     INT16 retVal;
     STRING command = EMPTY_STRING;
@@ -1282,6 +1288,217 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
 
     return( _lastError = retVal );
 }
+
+//
+// ************************************************************************
+//
+// network registration (AT+CREG)
+// - detect/set mode of network registration
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode         test, get or set
+// - networkRegistrationMode *pFmt  holds new/current value
+// - STRING &result                 reference to hold result string
+// - void *pParam                   pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, 
+                                  STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        switch( cmdMode )
+        {
+            case cmd_test:
+                command = NETWORK_REGISTRATION_CMD_TEST;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_get:
+                command = NETWORK_REGISTRATION_CMD_GET;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_set:
+                if( *pFmt == disableNetwRegUnsol ||
+                    *pFmt == enableNetwRegUnsol ||
+                    *pFmt == enableNetwRegUnsolLoc )
+
+                {
+                    command = NETWORK_REGISTRATION_CMD_SET;
+                    command += STRING(*pFmt);
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
+                }
+                else
+                {
+                    retVal = GSMDEVICE_E_CMD_MODE;
+                }
+                break;
+            default:
+                retVal = GSMDEVICE_E_CMD_MODE;
+                break;
+        }
+
+
+        if( retVal == GSMDEVICE_SUCCESS )
+        {
+            result = EMPTY_STRING;
+
+            switch( _cmdPortType )
+            {
+                case swSerial:
+                case hwSerial:
+                case linuxDevice:
+                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    {
+                        retVal = readResponse( result, false, NO_TIMEOUT );
+
+                        if( retVal == GSMDEVICE_SUCCESS )
+                        {
+                            retVal = checkResponse( result, dummy );
+                        }
+                    }
+                    break;
+                case streamType:
+                    retVal = GSMDEVICE_E_SUPPORTED;
+                    break;
+                case nodev:
+                default:
+                    retVal = GSMDEVICE_E_INIT;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
+//
+// ************************************************************************
+//
+// signal quality (AT+CSQ)
+// - detect current signal quality
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode        test or get
+// - struct signalQuality *pData   to hold current values
+// - STRING &result                reference to hold result string
+// - void *pParam                  pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData,
+                                  STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        switch( cmdMode )
+        {
+            case cmd_test:
+                command = SIGNAL_QUALITY_CMD_TEST;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_get:
+                command = SIGNAL_QUALITY_CMD_GET;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            default:
+                retVal = GSMDEVICE_E_CMD_MODE;
+                break;
+        }
+
+
+        if( retVal == GSMDEVICE_SUCCESS )
+        {
+            result = EMPTY_STRING;
+
+            switch( _cmdPortType )
+            {
+                case swSerial:
+                case hwSerial:
+                case linuxDevice:
+                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    {
+                        retVal = readResponse( result, false, NO_TIMEOUT );
+
+                        if( retVal == GSMDEVICE_SUCCESS )
+                        {
+                            retVal = checkResponse( result, dummy );
+                        }
+                    }
+                    break;
+                case streamType:
+                    retVal = GSMDEVICE_E_SUPPORTED;
+                    break;
+                case nodev:
+                default:
+                    retVal = GSMDEVICE_E_INIT;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2261,6 +2478,64 @@ INT16 gsmDevice::scanCMEErrNum( STRING response, INT16 &errNo )
 +COPS: (2,"Vodafone.de","Vodafone.de","26202"),(3,"E-Plus","E-Plus","26203"),(3,"T-MobileD","T-MobileD","26201")
 
 COMMAND NO RESPONSE!
+
+#define NETWORK_REGISTRATION_CMD_TEST "AT+CREG=?"
+#define NETWORK_REGISTRATION_CMD_GET  "AT+CREG?"
+#define NETWORK_REGISTRATION_CMD_SET  "AT+CREG="
+
+
+AT+CREG=?
+AT+CREG?
+AT+CREG=<n>
+AT+CREG=?
+
++CREG: (0-2)
+
+OK
+AT+CREG?
+
++CREG: 1,1
+
+OK
+AT+CREG=2
+
+OK
+AT+CREG?
+
++CREG: 2,1,"0340","73E7"
+
+OK
+
+disableNetwRegUnsol
+enableNetwRegUnsol
+enableNetwRegUnsolLoc
+
+0
+disable network registration unsolicited result code
+1
+enable network registration unsolicited result code +CREG: <stat>
+2
+enable network registration and location information unsolicited result code +CREG: <stat>[,<lac>,<ci>]
+<stat>:
+0
+not registered, MT is not currently searching a new operator to register to
+1
+registered, home network
+2
+not registered, but MT is currently searching a new operator to register to
+3
+registration denied
+4
+unknown
+5
+registered, roaming
+<lac>:
+string type; two byte location area code in hexadecimal format (e.g. "00C3" equals 195 in decimal)
+<ci>:
+string type; two byte cell ID in hexadecimal format
+
+
+
 
 // 
 // -------------------NOTHING IMPORTAN BEHIND THIS LINE -----------------

@@ -93,6 +93,7 @@ extern "C" {
 #define GSMDEVICE_E_P_SERIAL          -14
 #define GSMDEVICE_E_P_STREAM          -15
 #define GSMDEVICE_E_P_NULL            -16
+#define GSMDEVICE_E_P_PARAM           -17
 
 #define GSMDEVICE_E_INIT              -30
 #define GSMDEVICE_E_RESPONSE          -31
@@ -115,33 +116,41 @@ extern "C" {
 //
 // GSM response messages
 
-#define GSMDEVICE_OK_MSG            "OK"
-#define GSMDEVICE_E_CME_MSG         "+CME ERROR:"
-#define GSMDEVICE_E_CMS_MSG         "+CMS ERROR:"
+#define GSMDEVICE_OK_MSG              "OK"
+#define GSMDEVICE_E_CME_MSG           "+CME ERROR:"
+#define GSMDEVICE_E_CMS_MSG           "+CMS ERROR:"
 
 
 //
 // GSM response scan format 
 
-#define GSMDEVICE_E_CME_SCAN_STR    "+CME ERROR:%d"
-#define GSMDEVICE_E_CMS_SCAN_STR    "+CMS ERROR:%d"
+#define GSMDEVICE_E_CME_SCAN_STR      "+CME ERROR:%d"
+#define GSMDEVICE_E_CMS_SCAN_STR      "+CMS ERROR:%d"
 
 
 //
 // GSM AT commands
 
-#define SMS_MSG_FORMAT_CMD_TEST     "AT+CMGF=?"
-#define SMS_MSG_FORMAT_CMD_GET      "AT+CMGF?"
-#define SMS_MSG_FORMAT_CMD_SET      "AT+CMGF="
+#define SMS_MSG_FORMAT_CMD_TEST       "AT+CMGF=?"
+#define SMS_MSG_FORMAT_CMD_GET        "AT+CMGF?"
+#define SMS_MSG_FORMAT_CMD_SET        "AT+CMGF="
 
-#define RESULT_CODE_FORMAT_CMD_GET  "ATV"
-#define RESULT_CODE_FORMAT_CMD_SET  "ATV"
+#define RESULT_CODE_FORMAT_CMD_GET    "ATV"
+#define RESULT_CODE_FORMAT_CMD_SET    "ATV"
 
-#define OPERATOR_SELECT_CMD_TEST    "AT+COPS=?"
-#define OPERATOR_SELECT_CMD_GET     "AT+COPS?"
-#define OPERATOR_SELECT_CMD_SET     "AT+COPS="
+#define OPERATOR_SELECT_CMD_TEST      "AT+COPS=?"
+#define OPERATOR_SELECT_CMD_GET       "AT+COPS?"
+#define OPERATOR_SELECT_CMD_SET       "AT+COPS="
 
-#define ECHO_COMMAND_CMD_SET        "ATE"
+#define ECHO_COMMAND_CMD_SET          "ATE"
+
+#define NETWORK_REGISTRATION_CMD_TEST "AT+CREG=?"
+#define NETWORK_REGISTRATION_CMD_GET  "AT+CREG?"
+#define NETWORK_REGISTRATION_CMD_SET  "AT+CREG="
+
+#define SIGNAL_QUALITY_CMD_TEST       "AT+CSQ=?"
+#define SIGNAL_QUALITY_CMD_GET        "AT+CSQ"
+
 
 //
 // misc. definitons
@@ -250,6 +259,26 @@ enum cmdEcho
     cmdEchoOn  = 1
 };
 
+enum networkRegistrationMode
+{
+    disableNetwRegUnsol   = 0,
+    enableNetwRegUnsol    = 1,
+    enableNetwRegUnsolLoc = 2
+};
+
+
+struct signalQuality {
+    INT16 rssi;
+    INT16 ber;
+};
+
+
+
+
+
+
+
+
 
 struct _gsm_errcode2msg {
     INT16 errcode;
@@ -326,15 +355,19 @@ public:
     //  gsm commands supported
     //
     INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, 
-                        STRING &result );
+                        STRING &result, void *pParam = NULL );
     INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
-                        STRING &result );
+                        STRING &result, void *pParam = NULL );
     INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, 
-                                  STRING &result );
+                                  STRING &result, void *pParam = NULL );
     INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, 
-                                  STRING &result );
+                                  STRING &result, void *pParam = NULL );
+    INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, 
+                                  STRING &result, void *pParam = NULL );
+    INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData,
+                                  STRING &result, void *pParam = NULL );
 
- 
+
 
 private:
 
