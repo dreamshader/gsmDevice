@@ -183,7 +183,8 @@ Exception: if an error occurred, a specific error code is returned. See each com
 
 ----------
 
-**Select SMS message format (AT+CMGF):**    
+**Select SMS message format (AT+CMGF):**
+
 ***INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, STRING &result , void *pParam = NULL)***
 
 Set format of SMS messages to PDU or text format.
@@ -200,6 +201,7 @@ On error it returns:
 ----------
 
 **Set result code format mode(ATV):**
+
 ***INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, STRING &result, void *pParam)***
 
 Switch resultcode representation of gsm module to numerical only resp. long text.
@@ -214,6 +216,7 @@ On error it returns:
 ----------
 
 **Operator selects (AT+COPS):**
+
 ***INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, STRING &result, void *pParam = NULL)***
 
 Selects mode to connect to available operators.
@@ -233,6 +236,7 @@ On error it returns:
 ----------
 
 **Enable command echo (ATE):**
+
 ***INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, STRING &result, void *pParam = NULL)***
 
 Enable/disable echo of commands sent.
@@ -246,6 +250,7 @@ On error it returns:
 
 ----------
 **Network registration (AT+CREG)**
+
 ***INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, STRING &result, void *pParam = NULL)***
 
 Query the current network register status.
@@ -260,6 +265,7 @@ On error it returns:
 ----------
 
 **Signal quality (AT+CSQ)**
+
 ***INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData, STRING &result, void *pParam = NULL)***
 
 Query the quality of the signal.
@@ -275,6 +281,7 @@ On error it returns:
 ----------
 
 **Preferred operator list (AT+CPOL)**
+
 ***INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, STRING &result, void *pParam = NULL)***
 
 Edit and query the list with preferred operators.
@@ -291,6 +298,7 @@ On error it returns:
 ----------
 
 **Request international mobile subscriber identity (AT+CIMI)**
+
 ***INT16 requestIMSI( gsmCommandMode cmdMode, void *pIgnored, STRING &result, void *pParam = NULL)***
 
 Enable/disable echo of commands sent.
@@ -307,6 +315,7 @@ On error it returns:
 ----------
 
 **Read and write IMEI (AT+EGMR)**
+
 ***INT16 readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData *pData, STRING &result, void *pParam = NULL)***
 
 Edit and query the international mobile equipment identity.
@@ -328,6 +337,7 @@ On error it returns:
 ----------
 
 **Request revision identification (AT+ CGMR)**
+
 ***INT16 requestRevisionId( gsmCommandMode cmdMode, void *pIgnored, STRING &result, void *pParam = NULL)***
 
 Request revision information from the TA.
@@ -343,6 +353,7 @@ On error it returns:
 ----------
 
 **Request manufacturer specific information about the TA (ATI)**
+
 ***INT16 requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValue, STRING &result, void *pParam = NULL)***
 
 Request manufacture specific information from the TA.
