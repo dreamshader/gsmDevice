@@ -1477,8 +1477,460 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct signalQuality *pD
     return( _lastError = retVal );
 }
 
+//
+// ************************************************************************
+//
+// preferred operator list (AT+CPOL)
+// - manage list with preferred operators
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode         test, get or set
+// - prefOperList *pMode            holds new/current value
+// - STRING &result                 reference to hold result string
+// - void *pParam                   pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, 
+                                  STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        switch( cmdMode )
+        {
+            case cmd_test:
+                command = PREF_OPERATOR_LIST_CMD_TEST;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_get:
+                command = PREF_OPERATOR_LIST_CMD_GET;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_set:
+                if( *pMode == preOperLongAlphaMode ||
+                    *pMode == preOperShortAlphaMode ||
+                    *pMode == preOperNumericMode )
+
+                {
+                    command = PREF_OPERATOR_LIST_CMD_SET;
+                    command += STRING(*pMode);
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
+                }
+                else
+                {
+                    retVal = GSMDEVICE_E_CMD_MODE;
+                }
+                break;
+            default:
+                retVal = GSMDEVICE_E_CMD_MODE;
+                break;
+        }
 
 
+        if( retVal == GSMDEVICE_SUCCESS )
+        {
+            result = EMPTY_STRING;
+
+            switch( _cmdPortType )
+            {
+                case swSerial:
+                case hwSerial:
+                case linuxDevice:
+                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    {
+                        retVal = readResponse( result, false, NO_TIMEOUT );
+
+                        if( retVal == GSMDEVICE_SUCCESS )
+                        {
+                            retVal = checkResponse( result, dummy );
+                        }
+                    }
+                    break;
+                case streamType:
+                    retVal = GSMDEVICE_E_SUPPORTED;
+                    break;
+                case nodev:
+                default:
+                    retVal = GSMDEVICE_E_INIT;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
+//
+// ************************************************************************
+//
+// request IMSI (AT+CIMI)
+// - get international mobile subsciber identification
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode         test, get or set
+// - void *pIgnored                 may be NULL, is ignored
+// - STRING &result                 reference to hold result string
+// - void *pParam                   pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::requestIMSI( gsmCommandMode cmdMode, void *pIgnored, 
+                                  STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        switch( cmdMode )
+        {
+            case cmd_test:
+                command = REQUEST_IMSI_CMD_TEST;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_set:
+                command = REQUEST_IMSI_CMD_SET;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            default:
+                retVal = GSMDEVICE_E_CMD_MODE;
+                break;
+        }
+
+
+        if( retVal == GSMDEVICE_SUCCESS )
+        {
+            result = EMPTY_STRING;
+
+            switch( _cmdPortType )
+            {
+                case swSerial:
+                case hwSerial:
+                case linuxDevice:
+                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    {
+                        retVal = readResponse( result, false, NO_TIMEOUT );
+
+                        if( retVal == GSMDEVICE_SUCCESS )
+                        {
+                            retVal = checkResponse( result, dummy );
+                        }
+                    }
+                    break;
+                case streamType:
+                    retVal = GSMDEVICE_E_SUPPORTED;
+                    break;
+                case nodev:
+                default:
+                    retVal = GSMDEVICE_E_INIT;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
+//
+// ************************************************************************
+//
+// read/write IMEI (AT+EGMR)
+// - get international mobile equipment identity
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode         test, get or set
+// - struct rwIMEIData *pData       parameters
+// - STRING &result                 reference to hold result string
+// - void *pParam                   pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_P_NULL    pData is a null pointer
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData *pData, 
+                                  STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        if( pData != NULL )
+        {
+            pData->format = 7;
+
+            switch( cmdMode )
+            {
+                case cmd_test:
+                    command = READ_WRITE_IMEI_CMD_TEST;
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
+                    break;
+                case cmd_set:
+                    command = READ_WRITE_IMEI_CMD_SET;
+                    command += STRING(pData->mode);
+                    command += STRING(",");
+                    command += STRING(pData->format);
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
+                    break;
+                default:
+                    retVal = GSMDEVICE_E_CMD_MODE;
+                    break;
+            }
+
+
+            if( retVal == GSMDEVICE_SUCCESS )
+            {
+                result = EMPTY_STRING;
+
+                switch( _cmdPortType )
+                {
+                    case swSerial:
+                    case hwSerial:
+                    case linuxDevice:
+                        if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                        {
+                            retVal = readResponse( result, false, NO_TIMEOUT );
+    
+                            if( retVal == GSMDEVICE_SUCCESS )
+                            {
+                                retVal = checkResponse( result, dummy );
+                            }
+                        }
+                        break;
+                    case streamType:
+                        retVal = GSMDEVICE_E_SUPPORTED;
+                        break;
+                    case nodev:
+                    default:
+                        retVal = GSMDEVICE_E_INIT;
+                }
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_E_P_NULL;
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
+//
+// ************************************************************************
+//
+// request revision id (AT+CGMR)
+// - get revision identifaction
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode         test, get or set
+// - void *pIgnored                 may be NULL, is ignored
+// - STRING &result                 reference to hold result string
+// - void *pParam                   pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::requestRevisionId( gsmCommandMode cmdMode, void *pIgnored, 
+                                  STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        switch( cmdMode )
+        {
+            case cmd_test:
+                command = REQUEST_REV_ID_CMD_TEST;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            case cmd_set:
+                command = REQUEST_REV_ID_CMD_SET;
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            default:
+                retVal = GSMDEVICE_E_CMD_MODE;
+                break;
+        }
+
+
+        if( retVal == GSMDEVICE_SUCCESS )
+        {
+            result = EMPTY_STRING;
+
+            switch( _cmdPortType )
+            {
+                case swSerial:
+                case hwSerial:
+                case linuxDevice:
+                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    {
+                        retVal = readResponse( result, false, NO_TIMEOUT );
+
+                        if( retVal == GSMDEVICE_SUCCESS )
+                        {
+                            retVal = checkResponse( result, dummy );
+                        }
+                    }
+                    break;
+                case streamType:
+                    retVal = GSMDEVICE_E_SUPPORTED;
+                    break;
+                case nodev:
+                default:
+                    retVal = GSMDEVICE_E_INIT;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
+//
+// ************************************************************************
+//
+// request manufaturer data (ATI)
+// - get manufactor specific information
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode         test, get or set
+// - INT16 infoValue                manufacturer specific 
+// - STRING &result                 reference to hold result string
+// - void *pParam                   pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValue, 
+                                  STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = EMPTY_STRING;
+    STRING dummy = EMPTY_STRING;
+    INT16 errNo;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        switch( cmdMode )
+        {
+            case cmd_set:
+                command = REQUEST_MANSPEC_INFO_CMD_SET;
+                command += STRING(infoValue);
+                command += CRLF_STRING;
+                retVal = GSMDEVICE_SUCCESS;
+                break;
+            default:
+                retVal = GSMDEVICE_E_CMD_MODE;
+                break;
+        }
+
+
+        if( retVal == GSMDEVICE_SUCCESS )
+        {
+            result = EMPTY_STRING;
+
+            switch( _cmdPortType )
+            {
+                case swSerial:
+                case hwSerial:
+                case linuxDevice:
+                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    {
+                        retVal = readResponse( result, false, NO_TIMEOUT );
+
+                        if( retVal == GSMDEVICE_SUCCESS )
+                        {
+                            retVal = checkResponse( result, dummy );
+                        }
+                    }
+                    break;
+                case streamType:
+                    retVal = GSMDEVICE_E_SUPPORTED;
+                    break;
+                case nodev:
+                default:
+                    retVal = GSMDEVICE_E_INIT;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
 
 
 
@@ -2475,67 +2927,7 @@ INT16 gsmDevice::scanCMEErrNum( STRING response, INT16 &errNo )
 // 
 #ifdef NEVERDEF
 
-+COPS: (2,"Vodafone.de","Vodafone.de","26202"),(3,"E-Plus","E-Plus","26203"),(3,"T-MobileD","T-MobileD","26201")
-
 COMMAND NO RESPONSE!
-
-#define NETWORK_REGISTRATION_CMD_TEST "AT+CREG=?"
-#define NETWORK_REGISTRATION_CMD_GET  "AT+CREG?"
-#define NETWORK_REGISTRATION_CMD_SET  "AT+CREG="
-
-
-AT+CREG=?
-AT+CREG?
-AT+CREG=<n>
-AT+CREG=?
-
-+CREG: (0-2)
-
-OK
-AT+CREG?
-
-+CREG: 1,1
-
-OK
-AT+CREG=2
-
-OK
-AT+CREG?
-
-+CREG: 2,1,"0340","73E7"
-
-OK
-
-disableNetwRegUnsol
-enableNetwRegUnsol
-enableNetwRegUnsolLoc
-
-0
-disable network registration unsolicited result code
-1
-enable network registration unsolicited result code +CREG: <stat>
-2
-enable network registration and location information unsolicited result code +CREG: <stat>[,<lac>,<ci>]
-<stat>:
-0
-not registered, MT is not currently searching a new operator to register to
-1
-registered, home network
-2
-not registered, but MT is currently searching a new operator to register to
-3
-registration denied
-4
-unknown
-5
-registered, roaming
-<lac>:
-string type; two byte location area code in hexadecimal format (e.g. "00C3" equals 195 in decimal)
-<ci>:
-string type; two byte cell ID in hexadecimal format
-
-
-
 
 // 
 // -------------------NOTHING IMPORTAN BEHIND THIS LINE -----------------

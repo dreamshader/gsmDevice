@@ -112,46 +112,6 @@ extern "C" {
 #define GSMDEVICE_E_CMS_NOMSG        -201
 
 
-
-//
-// GSM response messages
-
-#define GSMDEVICE_OK_MSG              "OK"
-#define GSMDEVICE_E_CME_MSG           "+CME ERROR:"
-#define GSMDEVICE_E_CMS_MSG           "+CMS ERROR:"
-
-
-//
-// GSM response scan format 
-
-#define GSMDEVICE_E_CME_SCAN_STR      "+CME ERROR:%d"
-#define GSMDEVICE_E_CMS_SCAN_STR      "+CMS ERROR:%d"
-
-
-//
-// GSM AT commands
-
-#define SMS_MSG_FORMAT_CMD_TEST       "AT+CMGF=?"
-#define SMS_MSG_FORMAT_CMD_GET        "AT+CMGF?"
-#define SMS_MSG_FORMAT_CMD_SET        "AT+CMGF="
-
-#define RESULT_CODE_FORMAT_CMD_GET    "ATV"
-#define RESULT_CODE_FORMAT_CMD_SET    "ATV"
-
-#define OPERATOR_SELECT_CMD_TEST      "AT+COPS=?"
-#define OPERATOR_SELECT_CMD_GET       "AT+COPS?"
-#define OPERATOR_SELECT_CMD_SET       "AT+COPS="
-
-#define ECHO_COMMAND_CMD_SET          "ATE"
-
-#define NETWORK_REGISTRATION_CMD_TEST "AT+CREG=?"
-#define NETWORK_REGISTRATION_CMD_GET  "AT+CREG?"
-#define NETWORK_REGISTRATION_CMD_SET  "AT+CREG="
-
-#define SIGNAL_QUALITY_CMD_TEST       "AT+CSQ=?"
-#define SIGNAL_QUALITY_CMD_GET        "AT+CSQ"
-
-
 //
 // misc. definitons
 
@@ -161,7 +121,7 @@ extern "C" {
 #define CRLF_STRING           "\r\n"
 
 // 
-// ------------------------------- TYPES --------------------------------
+// ---------------------- TYPES - NOT GSM RELATED -----------------------
 //
 
 
@@ -193,7 +153,6 @@ enum portType
     nodev
 };
 
-
 union _port
 {
 #ifndef linux
@@ -222,6 +181,34 @@ enum gsmDevType
     UNKNOWN_GSM_DEVICE
 };
 
+struct _gsm_errcode2msg {
+    INT16 errcode;
+    const char *pMessage;
+};
+
+
+// 
+// ------------------------------ GSM STUFF -----------------------------
+//
+
+//
+// GSM response messages
+
+#define GSMDEVICE_OK_MSG              "OK"
+#define GSMDEVICE_E_CME_MSG           "+CME ERROR:"
+#define GSMDEVICE_E_CMS_MSG           "+CMS ERROR:"
+
+
+//
+// GSM response scan format 
+
+#define GSMDEVICE_E_CME_SCAN_STR      "+CME ERROR:%d"
+#define GSMDEVICE_E_CMS_SCAN_STR      "+CMS ERROR:%d"
+
+
+//
+// GSM AT commands
+
 enum gsmCommandMode
 {
     cmd_test,
@@ -230,12 +217,22 @@ enum gsmCommandMode
 
 };
 
+// -------------
+
+#define SMS_MSG_FORMAT_CMD_TEST       "AT+CMGF=?"
+#define SMS_MSG_FORMAT_CMD_GET        "AT+CMGF?"
+#define SMS_MSG_FORMAT_CMD_SET        "AT+CMGF="
+
 enum smsMessageFormat
 {
      smsPDUMode = 0,
      smsTXTMode = 1
 };
 
+// -------------
+
+#define RESULT_CODE_FORMAT_CMD_GET    "ATV"
+#define RESULT_CODE_FORMAT_CMD_SET    "ATV"
 
 enum cmdResultCodeFormat
 {
@@ -243,6 +240,11 @@ enum cmdResultCodeFormat
      cmdResultText    = 1
 };
 
+// -------------
+
+#define OPERATOR_SELECT_CMD_TEST      "AT+COPS=?"
+#define OPERATOR_SELECT_CMD_GET       "AT+COPS?"
+#define OPERATOR_SELECT_CMD_SET       "AT+COPS="
 
 enum opSelectMode
 {
@@ -253,12 +255,21 @@ enum opSelectMode
     opSelectManualAuto = 4
 };
 
+// -------------
+
+#define ECHO_COMMAND_CMD_SET          "ATE"
+
 enum cmdEcho
 {
     cmdEchoOff = 0,
     cmdEchoOn  = 1
 };
 
+// -------------
+
+#define NETWORK_REGISTRATION_CMD_TEST "AT+CREG=?"
+#define NETWORK_REGISTRATION_CMD_GET  "AT+CREG?"
+#define NETWORK_REGISTRATION_CMD_SET  "AT+CREG="
 enum networkRegistrationMode
 {
     disableNetwRegUnsol   = 0,
@@ -266,29 +277,72 @@ enum networkRegistrationMode
     enableNetwRegUnsolLoc = 2
 };
 
+// -------------
+
+#define SIGNAL_QUALITY_CMD_TEST       "AT+CSQ=?"
+#define SIGNAL_QUALITY_CMD_GET        "AT+CSQ"
 
 struct signalQuality {
     INT16 rssi;
     INT16 ber;
 };
 
+// -------------
 
+#define PREF_OPERATOR_LIST_CMD_TEST   "AT+CPOL=?"
+#define PREF_OPERATOR_LIST_CMD_GET    "AT+CPOL?"
+#define PREF_OPERATOR_LIST_CMD_SET    "AT+CPOL="
 
-
-
-
-
-
-
-struct _gsm_errcode2msg {
-    INT16 errcode;
-    const char *pMessage;
+enum prefOperList
+{
+    preOperLongAlphaMode  = 0,
+    preOperShortAlphaMode = 1,
+    preOperNumericMode    = 2
 };
+
+// -------------
+
+
+#define REQUEST_IMSI_CMD_TEST         "AT+CIMI=?"
+#define REQUEST_IMSI_CMD_SET          "AT+CIMI"
+
+// no additional data
+
+// -------------
+
+#define READ_WRITE_IMEI_CMD_TEST      "AT+EGMR=?"
+#define READ_WRITE_IMEI_CMD_SET       "AT+EGMR="
+
+enum rwIMEIMode
+{
+    imeiWriteMode = 1,
+    imeiReadMode = 2
+};
+
+struct rwIMEIData {
+    rwIMEIMode mode;
+    INT16 format;
+    STRING IMEI;
+};
+
+// -------------
+
+#define REQUEST_REV_ID_CMD_TEST       "AT+CMGR=?"
+#define REQUEST_REV_ID_CMD_SET        "AT+CMGR"
+
+// no additional data
+
+
+#define REQUEST_MANSPEC_INFO_CMD_SET  "AT+CMGR"
+
+// no additional data
+
 
 
 #ifdef __cplusplus
 }
 #endif
+
 
 // 
 // ------------------------------- OBJECTS ------------------------------
@@ -365,6 +419,16 @@ public:
     INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, 
                                   STRING &result, void *pParam = NULL );
     INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData,
+                                  STRING &result, void *pParam = NULL );
+    INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, 
+                                  STRING &result, void *pParam = NULL );
+    INT16 requestIMSI( gsmCommandMode cmdMode, void *pIgnored, 
+                                  STRING &result, void *pParam = NULL );
+    INT16 readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData *pData, 
+                                  STRING &result, void *pParam = NULL );
+    INT16 requestRevisionId( gsmCommandMode cmdMode, void *pIgnored, 
+                                  STRING &result, void *pParam = NULL );
+    INT16 requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValue, 
                                   STRING &result, void *pParam = NULL );
 
 
