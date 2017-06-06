@@ -1537,9 +1537,9 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pM
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_set:
-                if( *pMode == preOperLongAlphaMode ||
-                    *pMode == preOperShortAlphaMode ||
-                    *pMode == preOperNumericMode )
+                if( *pMode == prefOperLongAlphaMode ||
+                    *pMode == prefOperShortAlphaMode ||
+                    *pMode == prefOperNumericMode )
 
                 {
                     command = PREF_OPERATOR_LIST_CMD_SET;

@@ -295,9 +295,9 @@ struct signalQuality {
 
 enum prefOperList
 {
-    preOperLongAlphaMode  = 0,
-    preOperShortAlphaMode = 1,
-    preOperNumericMode    = 2
+    prefOperLongAlphaMode  = 0,
+    prefOperShortAlphaMode = 1,
+    prefOperNumericMode    = 2
 };
 
 // -------------

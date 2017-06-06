@@ -170,25 +170,26 @@ If something went wrong, the returned value is one of
 
 **Quite all gsm commands expect the following parameters:**
 
-*gsmCommandMode cmdMode* - command mode. Must be one of *cmd_test*, *cmd_get* or *cmd_set* as defined in gsmDevice.h.
+*gsmCommandMode cmdMode* - command mode. Must be one of *cmd_test*, *cmd_read*,  *cmd_execute* or *cmd_set* as defined in gsmDevice.h.
 *STRING &result* - a reference to a string object to hold the response of the attached gsm device.
+void *pParam is a pointer to additional parameters needed. This is not supported and may be ommited at this time. 
 Only the second parameter differs in type and meaning. See specific command for more detailed description.
 
 **Quite all gsm commands return GSMDEVICE_SUCCESS the on successful operation.**
 
 Exception: if an error occurred, a specific error code is returned. See each command for more detailed description.
 
-**Note:** *Not all gsm commands support all three command modes cmd_test, cmd_get and cmd_set. You will get the error GSMDEVICE_E_CMD_MODE if supplied command mode is not supported.*
+**Note:** *Not all gsm commands support all four command modes cmd_test, cmd_read, cmd_execute and cmd_set. You will get the error GSMDEVICE_E_CMD_MODE if supplied command mode is not supported.*
 
 ----------
 
 **Select SMS message format (AT+CMGF):**    
-***INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, STRING &result );***
+***INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, STRING &result , void *pParam = NULL)***
 
 Set format of SMS messages to PDU or text format.
 
 **Note:** *PDU format is not really readable by humans.*
-Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_get*.
+Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
 Expects: a pointer to a vaiable of type smsMessageFormat. In case of *cmd_set* this variable must contain either *smsPDUMode* or *smsTXTMode*. All other values will cause an error. After a call with gsmCommandMode *cmd_get* the variable will contain the current SMS message format, either *smsPDUMode* or *smsTXTMode*.
 On error it returns:
 
@@ -199,10 +200,10 @@ On error it returns:
 ----------
 
 **Set result code format mode(ATV):**
-***INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, STRING &result );***
+***INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, STRING &result, void *pParam)***
 
 Switch resultcode representation of gsm module to numerical only resp. long text.
-Supports: gsmCommandMode *cmd_set* only.
+Supports: gsmCommandMode *cmd_execute* only.
 Expects: a pointer to a vaiable of type cmdResultCodeFormat. This variable must contain either *cmdResultNumeric* or *cmdResultText*. All other values will cause an error.
 On error it returns:
 
@@ -213,11 +214,11 @@ On error it returns:
 ----------
 
 **Operator selects (AT+COPS):**
-***INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, STRING &result );***
+***INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, STRING &result, void *pParam = NULL)***
 
 Selects mode to connect to available operators.
-Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_get*.
-Expects: a pointer to a vaiable of type opSelectMode. In case of *cmd_set* this variable must contain either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*. All other values will cause an error. After a call with gsmCommandMode *cmd_get* the variable will contain the current opertor mode, either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*.
+Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
+Expects: a pointer to a vaiable of type opSelectMode. In case of *cmd_set* this variable must contain either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*. All other values will cause an error. After a call with gsmCommandMode *cmd_get* the variable will contain the current operator mode, either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*.
 On error it returns:
 
  - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
@@ -232,10 +233,10 @@ On error it returns:
 ----------
 
 **Enable command echo (ATE):**
-***INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, STRING &result );***
+***INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, STRING &result, void *pParam = NULL)***
 
 Enable/disable echo of commands sent.
-Supports: gsmCommandMode *cmd_set* only.
+Supports: gsmCommandMode *cmd_execute* only.
 Expects: a pointer to a vaiable of type cmdEcho. This variable must contain either *cmdEchoOff* or *cmdEchoOn*. All other values will cause an error.
 On error it returns:
 
@@ -244,5 +245,116 @@ On error it returns:
  - GSMDEVICE_E_CMD_MODE  (invalid command mode)
 
 ----------
+**Network registration (AT+CREG)**
+***INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, STRING &result, void *pParam = NULL)***
+
+Query the current network register status.
+Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
+Expects: a pointer to a vaiable of type networkRegistrationMode. In case of *cmd_set* this variable must contain either *disableNetwRegUnsol*, *enableNetwRegUnsol* or *enableNetwRegUnsolLoc*. All other values will cause an error. After a call with gsmCommandMode *cmd_read* the variable will contain the current registration mode, either *disableNetwRegUnsol*, *enableNetwRegUnsol* or *enableNetwRegUnsolLoc*.
+On error it returns:
+
+ - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
+ - GSMDEVICE_E_SUPPORTED (not yet supported e.g. on a stream device)
+ - GSMDEVICE_E_CMD_MODE  (invalid command mode)
+
+----------
+
+**Signal quality (AT+CSQ)**
+***INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData, STRING &result, void *pParam = NULL)***
+
+Query the quality of the signal.
+Supports: gsmCommandMode *cmd_test* and *cmd_execute*.
+Expects: a pointer to a vaiable of struct signalQuality. In case of *cmd_execute* this structure will hold the current values on successful execution.
+In case of *cmd_test* this parameter is ommitted and may be NULL.
+On error it returns:
+
+ - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
+ - GSMDEVICE_E_SUPPORTED (not yet supported e.g. on a stream device)
+ - GSMDEVICE_E_CMD_MODE  (invalid command mode)
+
+----------
+
+**Preferred operator list (AT+CPOL)**
+***INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, STRING &result, void *pParam = NULL)***
+
+Edit and query the list with preferred operators.
+Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
+Expects: a pointer to a vaiable of type prefOperList. In case of *cmd_set* this variable must contain either *prefOperLongAlphaMode*, *prefOperShortAlphaMode* or *prefOperNumericMode*. All other values will cause an error. After a call with gsmCommandMode *cmd_read* the STRING result will contain the current list of preferred operators.
+On error it returns:
+
+ - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
+ - GSMDEVICE_E_SUPPORTED (not yet supported e.g. on a stream device)
+ - GSMDEVICE_E_CMD_MODE  (invalid command mode)
+
+**Note:** *cmd_read is currently not completely impemented.*
+
+----------
+
+**Request international mobile subscriber identity (AT+CIMI)**
+***INT16 requestIMSI( gsmCommandMode cmdMode, void *pIgnored, STRING &result, void *pParam = NULL)***
+
+Enable/disable echo of commands sent.
+Supports: gsmCommandMode *cmd_test* and *cmd_set*.
+The void pointer pIgnored is omitted an may be NULL. After a call with gsmCommandMode *cmd_set* the STRING result will contain the current IMSI.
+On error it returns:
+
+ - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
+ - GSMDEVICE_E_SUPPORTED (not yet supported e.g. on a stream device)
+ - GSMDEVICE_E_CMD_MODE  (invalid command mode)
+
+**Note**: *cmd_set is currently not fully supported.*
+
+----------
+
+**Read and write IMEI (AT+EGMR)**
+***INT16 readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData *pData, STRING &result, void *pParam = NULL)***
+
+Edit and query the international mobile equipment identity.
+Supports: gsmCommandMode *cmd_test* and *cmd_set*.
+Expects: a pointer to a vaiable of type struct rwIMEIData. In case of *cmd_set* this variable must contain the following fields:
+imeiData.mode: imeiReadMode or imeiWriteMode
+imeiData.format: don't care, will be set automatically
+imeiData.IMEI: EMPTY_STRING or IMEI if imeiData.mode is imeiWriteMode
+Other values will cause an error. After a succesful return the current values are returned.
+On error it returns:
+
+ - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
+ - GSMDEVICE_E_P_NULL (pData is a null pointer)
+ - GSMDEVICE_E_SUPPORTED (not yet supported e.g. on a stream device)
+ - GSMDEVICE_E_CMD_MODE  (invalid command mode)
+
+**Note:** *cmd_set is currently not completely impemented.*
+
+----------
+
+**Request revision identification (AT+ CGMR)**
+***INT16 requestRevisionId( gsmCommandMode cmdMode, void *pIgnored, STRING &result, void *pParam = NULL)***
+
+Request revision information from the TA.
+Supports: gsmCommandMode *cmd_test* and *cmd_set*.
+The void pointer pIgnored is omitted an may be NULL. 
+After a call with gsmCommandMode *cmd_set* the STRING result will contain the requested information.
+On error it returns:
+
+ - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
+ - GSMDEVICE_E_SUPPORTED (not yet supported e.g. on a stream device)
+ - GSMDEVICE_E_CMD_MODE  (invalid command mode)
+
+----------
+
+**Request manufacturer specific information about the TA (ATI)**
+***INT16 requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValue, STRING &result, void *pParam = NULL)***
+
+Request manufacture specific information from the TA.
+Supports: gsmCommandMode *cmd_set* only.
+Expects: An INT16 value from 0 up to 255. Support of the values 1 to 255 are manufacturer dependend. On a successful return the STRING result will contain the requested information.
+On error it returns:
+
+ - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
+ - GSMDEVICE_E_SUPPORTED (not yet supported e.g. on a stream device)
+ - GSMDEVICE_E_CMD_MODE  (invalid command mode)
+
+----------
+
 
 ... **t.b.c**
