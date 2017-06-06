@@ -212,15 +212,16 @@ struct _gsm_errcode2msg {
 enum gsmCommandMode
 {
     cmd_test,
-    cmd_get,
-    cmd_set
+    cmd_read,
+    cmd_set,
+    cmd_execute
 
 };
 
 // -------------
 
 #define SMS_MSG_FORMAT_CMD_TEST       "AT+CMGF=?"
-#define SMS_MSG_FORMAT_CMD_GET        "AT+CMGF?"
+#define SMS_MSG_FORMAT_CMD_READ       "AT+CMGF?"
 #define SMS_MSG_FORMAT_CMD_SET        "AT+CMGF="
 
 enum smsMessageFormat
@@ -231,8 +232,7 @@ enum smsMessageFormat
 
 // -------------
 
-#define RESULT_CODE_FORMAT_CMD_GET    "ATV"
-#define RESULT_CODE_FORMAT_CMD_SET    "ATV"
+#define RESULT_CODE_FORMAT_CMD_EXEC   "ATV"
 
 enum cmdResultCodeFormat
 {
@@ -243,7 +243,7 @@ enum cmdResultCodeFormat
 // -------------
 
 #define OPERATOR_SELECT_CMD_TEST      "AT+COPS=?"
-#define OPERATOR_SELECT_CMD_GET       "AT+COPS?"
+#define OPERATOR_SELECT_CMD_READ      "AT+COPS?"
 #define OPERATOR_SELECT_CMD_SET       "AT+COPS="
 
 enum opSelectMode
@@ -257,7 +257,7 @@ enum opSelectMode
 
 // -------------
 
-#define ECHO_COMMAND_CMD_SET          "ATE"
+#define ECHO_COMMAND_CMD_EXEC         "ATE"
 
 enum cmdEcho
 {
@@ -268,7 +268,7 @@ enum cmdEcho
 // -------------
 
 #define NETWORK_REGISTRATION_CMD_TEST "AT+CREG=?"
-#define NETWORK_REGISTRATION_CMD_GET  "AT+CREG?"
+#define NETWORK_REGISTRATION_CMD_READ "AT+CREG?"
 #define NETWORK_REGISTRATION_CMD_SET  "AT+CREG="
 enum networkRegistrationMode
 {
@@ -280,7 +280,7 @@ enum networkRegistrationMode
 // -------------
 
 #define SIGNAL_QUALITY_CMD_TEST       "AT+CSQ=?"
-#define SIGNAL_QUALITY_CMD_GET        "AT+CSQ"
+#define SIGNAL_QUALITY_CMD_EXEC       "AT+CSQ"
 
 struct signalQuality {
     INT16 rssi;
@@ -290,7 +290,7 @@ struct signalQuality {
 // -------------
 
 #define PREF_OPERATOR_LIST_CMD_TEST   "AT+CPOL=?"
-#define PREF_OPERATOR_LIST_CMD_GET    "AT+CPOL?"
+#define PREF_OPERATOR_LIST_CMD_READ   "AT+CPOL?"
 #define PREF_OPERATOR_LIST_CMD_SET    "AT+CPOL="
 
 enum prefOperList
@@ -327,13 +327,13 @@ struct rwIMEIData {
 
 // -------------
 
-#define REQUEST_REV_ID_CMD_TEST       "AT+CMGR=?"
-#define REQUEST_REV_ID_CMD_SET        "AT+CMGR"
+#define REQUEST_REV_ID_CMD_TEST       "AT+CGMR=?"
+#define REQUEST_REV_ID_CMD_SET        "AT+CGMR"
 
 // no additional data
 
 
-#define REQUEST_MANSPEC_INFO_CMD_SET  "AT+CMGR"
+#define REQUEST_MANSPEC_INFO_CMD_SET  "ATI"
 
 // no additional data
 
@@ -401,6 +401,7 @@ public:
     INT16 init(DEVICENAME deviceName, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);
     INT16 uartReadResponse( int fd, char *pResponse, int maxLen, long timeout );
     INT16 uartReadString( int fd, char *pResponse, int maxLen, int *pRead, long timeout );
+    INT16 removeNullChars( char *pResponse, int maxLen );
 #endif // linux
 
     INT16 inputFlush();

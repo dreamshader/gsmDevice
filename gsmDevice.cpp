@@ -901,8 +901,8 @@ INT16 gsmDevice::inputFlush()
 // - set the format of response of commands
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode     get or set
-// - cmdResultCodeFormat *pFmt  holds new/current value
+// - gsmCommandMode cmdMode     cmd_execute only
+// - cmdResultCodeFormat *pFmt  holds new value or NULL
 // - STRING &result             reference to hold result string
 // - void *pParam               pointer to additional parameters
 // 
@@ -932,23 +932,26 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
     {
         switch( cmdMode )
         {
-            case cmd_get:
-                command = RESULT_CODE_FORMAT_CMD_GET;
-                command += CRLF_STRING;
-                retVal = GSMDEVICE_SUCCESS;
-                break;
-            case cmd_set:
-                if( *pFmt == cmdResultNumeric ||
-                    *pFmt == cmdResultText    )
+            case cmd_execute:
+                command = RESULT_CODE_FORMAT_CMD_EXEC;
+                if( pFmt != NULL )
                 {
-                    command = RESULT_CODE_FORMAT_CMD_SET;
-                    command += STRING(*pFmt);
-                    command += CRLF_STRING;
-                    retVal = GSMDEVICE_SUCCESS;
+                    if( *pFmt == cmdResultNumeric ||
+                        *pFmt == cmdResultText    )
+                    {
+                        command += STRING(*pFmt);
+                        command += CRLF_STRING;
+                        retVal = GSMDEVICE_SUCCESS;
+                    }
+                    else
+                    {
+                        retVal = GSMDEVICE_E_CMD_MODE;
+                    }
                 }
                 else
                 {
-                    retVal = GSMDEVICE_E_CMD_MODE;
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
                 }
                 break;
             default:
@@ -997,7 +1000,7 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
 // - set the format of short messages
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode   get or set
+// - gsmCommandMode cmdMode   cmd_test, cmd_read or cmd_set
 // - smsMessageFormat *pFmt   holds new/current value
 // - STRING &result           reference to hold result string
 // - void *pParam             pointer to additional parameters
@@ -1033,8 +1036,8 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
-            case cmd_get:
-                command = SMS_MSG_FORMAT_CMD_GET;
+            case cmd_read:
+                command = SMS_MSG_FORMAT_CMD_READ;
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
@@ -1098,7 +1101,7 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
 // - retrieve/set operator connected to
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode   get or set
+// - gsmCommandMode cmdMode   cmd_test, cmd_read or cmd_set
 // - opSelectMode *pFmt       holds new/current value
 // - STRING &result           reference to hold result string
 // - void *pParam             pointer to additional parameters
@@ -1135,8 +1138,8 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt,
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
-            case cmd_get:
-                command = OPERATOR_SELECT_CMD_GET;
+            case cmd_read:
+                command = OPERATOR_SELECT_CMD_READ;
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
@@ -1204,8 +1207,8 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt,
 // - enable/disable echo of commands sent to attached gsm device
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode   get or set
-// - cmdEcho *pFmt            holds new/current value
+// - gsmCommandMode cmdMode   cmd_execute only
+// - cmdEcho *pFmt            holds new value or NULL
 // - STRING &result           reference to hold result string
 // - void *pParam             pointer to additional parameters
 // 
@@ -1235,19 +1238,27 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
     {
         switch( cmdMode )
         {
-            case cmd_set:
-                if( *pFmt == cmdEchoOff ||
-                    *pFmt == cmdEchoOn )
-
+            case cmd_execute:
+                command = ECHO_COMMAND_CMD_EXEC;
+                if( pFmt != NULL )
                 {
-                    command = ECHO_COMMAND_CMD_SET;
-                    command += STRING(*pFmt);
-                    command += CRLF_STRING;
-                    retVal = GSMDEVICE_SUCCESS;
+                    if( *pFmt == cmdEchoOff ||
+                        *pFmt == cmdEchoOn )
+
+                    {
+                        command += STRING(*pFmt);
+                        command += CRLF_STRING;
+                        retVal = GSMDEVICE_SUCCESS;
+                    }
+                    else
+                    {
+                        retVal = GSMDEVICE_E_CMD_MODE;
+                    }
                 }
                 else
                 {
-                    retVal = GSMDEVICE_E_CMD_MODE;
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
                 }
                 break;
             default:
@@ -1296,7 +1307,7 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
 // - detect/set mode of network registration
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode         test, get or set
+// - gsmCommandMode cmdMode         cmd_test, cmd_read or cmd_set
 // - networkRegistrationMode *pFmt  holds new/current value
 // - STRING &result                 reference to hold result string
 // - void *pParam                   pointer to additional parameters
@@ -1332,8 +1343,8 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistratio
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
-            case cmd_get:
-                command = NETWORK_REGISTRATION_CMD_GET;
+            case cmd_read:
+                command = NETWORK_REGISTRATION_CMD_READ;
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
@@ -1398,7 +1409,7 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistratio
 // - detect current signal quality
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode        test or get
+// - gsmCommandMode cmdMode        cmd_test or cmd_exec
 // - struct signalQuality *pData   to hold current values
 // - STRING &result                reference to hold result string
 // - void *pParam                  pointer to additional parameters
@@ -1434,8 +1445,8 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct signalQuality *pD
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
-            case cmd_get:
-                command = SIGNAL_QUALITY_CMD_GET;
+            case cmd_execute:
+                command = SIGNAL_QUALITY_CMD_EXEC;
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
@@ -1484,7 +1495,7 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct signalQuality *pD
 // - manage list with preferred operators
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode         test, get or set
+// - gsmCommandMode cmdMode         cmd_test, cmd_read or cmd_set
 // - prefOperList *pMode            holds new/current value
 // - STRING &result                 reference to hold result string
 // - void *pParam                   pointer to additional parameters
@@ -1520,8 +1531,8 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pM
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
-            case cmd_get:
-                command = PREF_OPERATOR_LIST_CMD_GET;
+            case cmd_read:
+                command = PREF_OPERATOR_LIST_CMD_READ;
                 command += CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
@@ -1586,7 +1597,7 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pM
 // - get international mobile subsciber identification
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode         test, get or set
+// - gsmCommandMode cmdMode         cmd_test or cmd_set
 // - void *pIgnored                 may be NULL, is ignored
 // - STRING &result                 reference to hold result string
 // - void *pParam                   pointer to additional parameters
@@ -1672,7 +1683,7 @@ INT16 gsmDevice::requestIMSI( gsmCommandMode cmdMode, void *pIgnored,
 // - get international mobile equipment identity
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode         test, get or set
+// - gsmCommandMode cmdMode         cmd_test or cmd_set
 // - struct rwIMEIData *pData       parameters
 // - STRING &result                 reference to hold result string
 // - void *pParam                   pointer to additional parameters
@@ -1771,7 +1782,7 @@ INT16 gsmDevice::readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData *pData
 // - get revision identifaction
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode         test, get or set
+// - gsmCommandMode cmdMode         cmd_test or cmd_set
 // - void *pIgnored                 may be NULL, is ignored
 // - STRING &result                 reference to hold result string
 // - void *pParam                   pointer to additional parameters
@@ -1857,7 +1868,7 @@ INT16 gsmDevice::requestRevisionId( gsmCommandMode cmdMode, void *pIgnored,
 // - get manufactor specific information
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode         test, get or set
+// - gsmCommandMode cmdMode         cmd_set only
 // - INT16 infoValue                manufacturer specific 
 // - STRING &result                 reference to hold result string
 // - void *pParam                   pointer to additional parameters
@@ -1931,63 +1942,6 @@ INT16 gsmDevice::requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValu
 
     return( _lastError = retVal );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 //
 // ************************************************************************
@@ -2428,6 +2382,37 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter, INT32 timeout 
 
 #ifdef linux
 
+// ////////////////////////////////////////////////////////////////////////
+//
+// read string from uart
+//   - read uart until '\n'
+//
+// Expected arguments:
+// - int  fd          filedescriptor to open device
+// - char *pResponse  buffer to hold device response
+// - int  maxLen      size of buffer
+// - long timeout     only test at this time ... timeout value
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_P_NULL     buffer points to NULL
+// - GSMDEVICE_E_RESPONSE   gsm device (e.g. gsm modem) did not respond
+//
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::removeNullChars( char *pResponse, int maxLen )
+{
+    INT16 retVal;
+
+    while( maxLen > 0 && *(pResponse+maxLen-1) == '\0' )
+    {
+        maxLen--;
+    }
+
+    return( maxLen );
+}
+
 
 // ////////////////////////////////////////////////////////////////////////
 //
@@ -2463,6 +2448,7 @@ INT16 gsmDevice::uartReadString( int fd, char *pResponse, int maxLen, int *pRead
     {
         if( (rdLen = read(fd, pResponse, maxLen)) > 0 )
         {
+            rdLen = removeNullChars( pResponse, rdLen );
             if( *(pResponse+rdLen-1) == '\n' )
             {
                 done = true;
@@ -2928,6 +2914,95 @@ INT16 gsmDevice::scanCMEErrNum( STRING response, INT16 &errNo )
 #ifdef NEVERDEF
 
 COMMAND NO RESPONSE!
+
+
+
+device init successful.
+device synchronized successful.
+select command response format returns: 0
+result: [ATV1
+
+OK
+]
+select sms message format returns: 0
+result: [AT+CMGF=?
+
++CMGF:(0,1)
+
+OK
+]
+select sms message format returns: 0
+result: [AT+CMGF?
+
++CMGF: 1
+
+OK
+]
+select sms message format returns: 0
+result: [AT+CMGF=0
+
+OK
+]
+select sms message format returns: 0
+result: [AT+CMGF=1
+
+OK
+]
+command echo returns: 0
+result: [ATE1
+
+OK
+]
+network registration returns: 0
+result: [AT+CREG=2
+
+OK
+]
+network registration returns: 0
+result: [AT+CREG?
+
++CREG: 2,1,"0340","22D1"
+
+OK
+]
+signal quality returns: 0
+result: [AT+CSQ
+
++CSQ: 15,99
+
+OK
+]
+preferred oper list returns: 0
+result: [AT+CPOL=?
+
++CPOL: (1-100),(0,2)
+
+OK
+]
+request IMSI returns: 0
+result: [AT+CIMI=?
+
+OK
+]
+read/write IMEI returns: -1
+result: [AT+EGMR=2,7
+
++EGMR:867567021329508]
+request revision returns: -200
+result: [AT+CMGR
+
++CMS ERROR:303
+]
+request manufacturer data returns: 0
+result: [ATI0
+
+Ai Thinker Co.LTD
+A6 
+V03.03.20161229019H03
+
+OK
+]
+DONE!
 
 // 
 // -------------------NOTHING IMPORTAN BEHIND THIS LINE -----------------
