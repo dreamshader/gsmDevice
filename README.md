@@ -10,7 +10,7 @@
 
 ### **class reference:**
 
-**gsmDevice()**
+***gsmDevice()***
 
 Constructor. Creates a gsmDevice object. There are no parameters.
 
@@ -18,7 +18,7 @@ Constructor. Creates a gsmDevice object. There are no parameters.
 ----------
 
 
-**~gsmDevice()**
+***~gsmDevice()***
 
 Destructor. Deletes an instance of class gsmdevice. 
 
@@ -28,7 +28,7 @@ Destructor. Deletes an instance of class gsmdevice.
 ----------
 
 
-**STRING getError()**
+***STRING getError()***
 
 Returns a string containing a description of the last error occured.
 
@@ -38,7 +38,7 @@ Returns a string containing a description of the last error occured.
 ----------
 
 
-**INT16 begin(gsmDevType devType)**
+***INT16 begin(gsmDevType devType)***
 
 Begin communication with and initialize the attached GSM module.
 devType may be one of AI_A6 or AI_A7 as defined in gsmDevice.h.
@@ -49,7 +49,7 @@ devType may be one of AI_A6 or AI_A7 as defined in gsmDevice.h.
 ----------
 
 
-**INT16 inputFlush()**
+***INT16 inputFlush()***
 
 This method reads off all chracters in the input queue of the serial device, the gsm module is attached to.
 There is no parameter.
@@ -74,7 +74,7 @@ Depending of an error, that occurred, resultcode may differ.
 ----------
 
 
-**INT16 init(INT16 rxPin = NULL_PIN, INT16 txPin = NULL_PIN, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT)**
+***INT16 init(INT16 rxPin = NULL_PIN, INT16 txPin = NULL_PIN, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT)***
 
 Expects two valid pins. These pins will be used as Rx and Tx for a Software-Serial connection to talk to the attached module.
 Except the pins the other parameter are optional. Default speed is 9600 baud, default timeout is around 200 ms.
@@ -92,7 +92,7 @@ If something went wrong, the returned value is one of
 ----------
 
 
-**INT16 init(INT16 serialNo = NO_SERIAL, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT)**
+***INT16 init(INT16 serialNo = NO_SERIAL, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT)***
 
 Expects the number of UART to use. If serialNo is NO_SERIAL, the default, the first UART is used. On a MEGA2560 up to 4 UARTS (0 to 3) are available. 
 The parameters speed and timeout are optional, too. Default speed is 9600 baud, default timeout is around 200 ms.
@@ -112,7 +112,7 @@ If something went wrong, the returned value is one of
 
 The following three methods use a preconfigured stream resp. serial device. The settings of this device are not altered in any way, so that correct settings are your responsibility.
 
-**INT16 init(STREAM *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT)**
+***INT16 init(STREAM \*output = NULL_STREAM, INT32 timeout = NO_TIMEOUT)***
 
 Expects a pointer to an open stream to communicate with the attached gsm device. Timeout is optional and as a default roughly 200 ms.
 
@@ -121,7 +121,7 @@ If something went wrong, the returned value is one of
  - GSMDEVICE_E_P_STREAM (invalid stream supplied)
  - GSMDEVICE_E_P_TMOUT  (invalid value for timeout)
 
-**INT16 init(SW_SERIAL *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT)**
+***INT16 init(SW_SERIAL \*output = NULL_STREAM, INT32 timeout = NO_TIMEOUT)***
 
 Expects a pointer to an open software serial connection to communicate with the attached gsm device. Timeout is optional and as a default roughly 200 ms.
 
@@ -130,7 +130,7 @@ If something went wrong, the returned value is one of
  - GSMDEVICE_E_P_STREAM (invalid software serial supplied)
  - GSMDEVICE_E_P_TMOUT  (invalid value for timeout)
 
-**INT16 init(HW_SERIAL *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT)**
+***INT16 init(HW_SERIAL \*output = NULL_STREAM, INT32 timeout = NO_TIMEOUT)***
 
 Expects a pointer to an open serial connection to communicate with the attached gsm device. Timeout is optional and as a default roughly 200 ms.
 
@@ -152,7 +152,7 @@ If something went wrong, the returned value is one of
 ----------
 
 
-**INT16 init(DEVICENAME deviceName, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT)**
+***INT16 init(DEVICENAME deviceName, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT)***
 
 Expects valid path to an UART, e.g. PL3203 USB device or /dev/ttyS0 as a serial communication port.
 The speed and timeout parameters are optional. Their defaults are the same as in the init-methods for Arduino, 9600 baud resp. around 200 ms as the timeout value.
@@ -183,9 +183,8 @@ Exception: if an error occurred, a specific error code is returned. See each com
 
 ----------
 
-**Select SMS message format (AT+CMGF):**
-
-**INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, STRING &result , void *pParam = NULL)**
+**Select SMS message format (AT+CMGF)**
+***INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat \*pFmt, STRING &result , void \*pParam = NULL)***
 
 Set format of SMS messages to PDU or text format.
 
@@ -200,9 +199,8 @@ On error it returns:
 
 ----------
 
-**Set result code format mode(ATV):**
-
-**INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, STRING &result, void *pParam)**
+**Set result code format mode(ATV)**
+***INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat \*pFmt, STRING &result, void \*pParam)***
 
 Switch resultcode representation of gsm module to numerical only resp. long text.
 Supports: gsmCommandMode *cmd_execute* only.
@@ -216,8 +214,7 @@ On error it returns:
 ----------
 
 **Operator selects (AT+COPS):**
-
-**INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, STRING &result, void *pParam = NULL)**
+***INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode \*pFmt, STRING &result, void \*pParam = NULL)***
 
 Selects mode to connect to available operators.
 Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
@@ -236,8 +233,7 @@ On error it returns:
 ----------
 
 **Enable command echo (ATE):**
-
-**INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, STRING &result, void *pParam = NULL)**
+***INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho \*pFmt, STRING &result, void \*pParam = NULL)***
 
 Enable/disable echo of commands sent.
 Supports: gsmCommandMode *cmd_execute* only.
@@ -250,8 +246,7 @@ On error it returns:
 
 ----------
 **Network registration (AT+CREG)**
-
-**INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, STRING &result, void *pParam = NULL)**
+***INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode \*pFmt, STRING &result, void \*pParam = NULL)***
 
 Query the current network register status.
 Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
@@ -265,8 +260,7 @@ On error it returns:
 ----------
 
 **Signal quality (AT+CSQ)**
-
-**INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData, STRING &result, void *pParam = NULL)**
+***INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality \*pData, STRING &result, void \*pParam = NULL)***
 
 Query the quality of the signal.
 Supports: gsmCommandMode *cmd_test* and *cmd_execute*.
@@ -281,8 +275,7 @@ On error it returns:
 ----------
 
 **Preferred operator list (AT+CPOL)**
-
-**INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, STRING &result, void *pParam = NULL)**
+***INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList \*pMode, STRING &result, void \*pParam = NULL)***
 
 Edit and query the list with preferred operators.
 Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
@@ -298,8 +291,7 @@ On error it returns:
 ----------
 
 **Request international mobile subscriber identity (AT+CIMI)**
-
-**INT16 requestIMSI( gsmCommandMode cmdMode, void *pIgnored, STRING &result, void *pParam = NULL)**
+***INT16 requestIMSI( gsmCommandMode cmdMode, void \*pIgnored, STRING &result, void \*pParam = NULL)***
 
 Enable/disable echo of commands sent.
 Supports: gsmCommandMode *cmd_test* and *cmd_set*.
@@ -315,8 +307,7 @@ On error it returns:
 ----------
 
 **Read and write IMEI (AT+EGMR)**
-
-**INT16 readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData *pData, STRING &result, void *pParam = NULL)**
+***INT16 readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData \*pData, STRING &result, void \*pParam = NULL)***
 
 Edit and query the international mobile equipment identity.
 Supports: gsmCommandMode *cmd_test* and *cmd_set*.
@@ -337,8 +328,7 @@ On error it returns:
 ----------
 
 **Request revision identification (AT+ CGMR)**
-
-**INT16 requestRevisionId( gsmCommandMode cmdMode, void *pIgnored, STRING &result, void *pParam = NULL)**
+***INT16 requestRevisionId( gsmCommandMode cmdMode, void \*pIgnored, STRING &result, void \*pParam = NULL)***
 
 Request revision information from the TA.
 Supports: gsmCommandMode *cmd_test* and *cmd_set*.
@@ -353,8 +343,7 @@ On error it returns:
 ----------
 
 **Request manufacturer specific information about the TA (ATI)**
-
-**INT16 requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValue, STRING &result, void *pParam = NULL)**
+***INT16 requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValue, STRING &result, void \*pParam = NULL)***
 
 Request manufacture specific information from the TA.
 Supports: gsmCommandMode *cmd_set* only.
@@ -369,3 +358,4 @@ On error it returns:
 
 
 ... **t.b.c**
+
