@@ -84,7 +84,8 @@ extern "C" {
 // unified error codes
 
 #define GSMDEVICE_SUCCESS               0   // no error
-#define GSMDEVICE_ERROR                -1   // unspecified/unknown error
+#define GSMDEVICE_ERROR                -1   // general error
+#define GSMDEVICE_E_UNSPECIFIC         -2   // unspecified/unknown error
 
 #define GSMDEVICE_E_P_RXPIN           -10
 #define GSMDEVICE_E_P_TXPIN           -11
@@ -105,11 +106,15 @@ extern "C" {
 #define GSMDEVICE_E_OPEN              -37
 #define GSMDEVICE_E_SETUP             -38
 
+#define GSMDEVICE_E_PATTERN           -40
+#define GSMDEVICE_E_RESULT            -41
+#define GSMDEVICE_E_INVAL             -42
+#define GSMDEVICE_E_TOO_SHORT         -43
 
 #define GSMDEVICE_E_CME              -100
-#define GSMDEVICE_E_CME_NOMSG        -101
+#define GSMDEVICE_E_CME_UNKNOWN      -101
 #define GSMDEVICE_E_CMS              -200
-#define GSMDEVICE_E_CMS_NOMSG        -201
+#define GSMDEVICE_E_CMS_UNKNOWN      -201
 
 
 //
@@ -195,15 +200,16 @@ struct _gsm_errcode2msg {
 // GSM response messages
 
 #define GSMDEVICE_OK_MSG              "OK"
+#define GSMDEVICE_ATTENTION           "AT"
 #define GSMDEVICE_E_CME_MSG           "+CME ERROR:"
 #define GSMDEVICE_E_CMS_MSG           "+CMS ERROR:"
 
-
+#define GSMDEVICE_RESP_PATTERN_LEN   10
 //
 // GSM response scan format 
 
-#define GSMDEVICE_E_CME_SCAN_STR      "+CME ERROR:%d"
-#define GSMDEVICE_E_CMS_SCAN_STR      "+CMS ERROR:%d"
+#define GSMDEVICE_E_CME_FMT_STR       "+CME ERROR:%d"
+#define GSMDEVICE_E_CMS_FMT_STR       "+CMS ERROR:%d"
 
 
 //
@@ -220,9 +226,9 @@ enum gsmCommandMode
 
 // -------------
 
-#define SMS_MSG_FORMAT_CMD_TEST       "AT+CMGF=?"
-#define SMS_MSG_FORMAT_CMD_READ       "AT+CMGF?"
-#define SMS_MSG_FORMAT_CMD_SET        "AT+CMGF="
+#define SMS_MSG_FORMAT_CMD_TEST       "+CMGF=?"
+#define SMS_MSG_FORMAT_CMD_READ       "+CMGF?"
+#define SMS_MSG_FORMAT_CMD_SET        "+CMGF="
 
 enum smsMessageFormat
 {
@@ -230,9 +236,18 @@ enum smsMessageFormat
      smsTXTMode = 1
 };
 
+#define readResponseFmtCMGF           "%d \r\n"
+#define testResponseFmtCMGF           "(%d,%d)\r\n"
+
+struct _dataCMGF {
+    int current;
+    int from;
+    int to;
+};
+
 // -------------
 
-#define RESULT_CODE_FORMAT_CMD_EXEC   "ATV"
+#define RESULT_CODE_FORMAT_CMD_EXEC   "V"
 
 enum cmdResultCodeFormat
 {
@@ -242,9 +257,9 @@ enum cmdResultCodeFormat
 
 // -------------
 
-#define OPERATOR_SELECT_CMD_TEST      "AT+COPS=?"
-#define OPERATOR_SELECT_CMD_READ      "AT+COPS?"
-#define OPERATOR_SELECT_CMD_SET       "AT+COPS="
+#define OPERATOR_SELECT_CMD_TEST      "+COPS=?"
+#define OPERATOR_SELECT_CMD_READ      "+COPS?"
+#define OPERATOR_SELECT_CMD_SET       "+COPS="
 
 enum opSelectMode
 {
@@ -257,7 +272,7 @@ enum opSelectMode
 
 // -------------
 
-#define ECHO_COMMAND_CMD_EXEC         "ATE"
+#define ECHO_COMMAND_CMD_EXEC         "E"
 
 enum cmdEcho
 {
@@ -267,9 +282,9 @@ enum cmdEcho
 
 // -------------
 
-#define NETWORK_REGISTRATION_CMD_TEST "AT+CREG=?"
-#define NETWORK_REGISTRATION_CMD_READ "AT+CREG?"
-#define NETWORK_REGISTRATION_CMD_SET  "AT+CREG="
+#define NETWORK_REGISTRATION_CMD_TEST "+CREG=?"
+#define NETWORK_REGISTRATION_CMD_READ "+CREG?"
+#define NETWORK_REGISTRATION_CMD_SET  "+CREG="
 enum networkRegistrationMode
 {
     disableNetwRegUnsol   = 0,
@@ -279,8 +294,8 @@ enum networkRegistrationMode
 
 // -------------
 
-#define SIGNAL_QUALITY_CMD_TEST       "AT+CSQ=?"
-#define SIGNAL_QUALITY_CMD_EXEC       "AT+CSQ"
+#define SIGNAL_QUALITY_CMD_TEST       "+CSQ=?"
+#define SIGNAL_QUALITY_CMD_EXEC       "+CSQ"
 
 struct signalQuality {
     INT16 rssi;
@@ -289,9 +304,9 @@ struct signalQuality {
 
 // -------------
 
-#define PREF_OPERATOR_LIST_CMD_TEST   "AT+CPOL=?"
-#define PREF_OPERATOR_LIST_CMD_READ   "AT+CPOL?"
-#define PREF_OPERATOR_LIST_CMD_SET    "AT+CPOL="
+#define PREF_OPERATOR_LIST_CMD_TEST   "+CPOL=?"
+#define PREF_OPERATOR_LIST_CMD_READ   "+CPOL?"
+#define PREF_OPERATOR_LIST_CMD_SET    "+CPOL="
 
 enum prefOperList
 {
@@ -303,15 +318,15 @@ enum prefOperList
 // -------------
 
 
-#define REQUEST_IMSI_CMD_TEST         "AT+CIMI=?"
-#define REQUEST_IMSI_CMD_SET          "AT+CIMI"
+#define REQUEST_IMSI_CMD_TEST         "+CIMI=?"
+#define REQUEST_IMSI_CMD_SET          "+CIMI"
 
 // no additional data
 
 // -------------
 
-#define READ_WRITE_IMEI_CMD_TEST      "AT+EGMR=?"
-#define READ_WRITE_IMEI_CMD_SET       "AT+EGMR="
+#define READ_WRITE_IMEI_CMD_TEST      "+EGMR=?"
+#define READ_WRITE_IMEI_CMD_SET       "+EGMR="
 
 enum rwIMEIMode
 {
@@ -327,13 +342,13 @@ struct rwIMEIData {
 
 // -------------
 
-#define REQUEST_REV_ID_CMD_TEST       "AT+CGMR=?"
-#define REQUEST_REV_ID_CMD_SET        "AT+CGMR"
+#define REQUEST_REV_ID_CMD_TEST       "+CGMR=?"
+#define REQUEST_REV_ID_CMD_SET        "+CGMR"
 
 // no additional data
 
 
-#define REQUEST_MANSPEC_INFO_CMD_SET  "ATI"
+#define REQUEST_MANSPEC_INFO_CMD_SET  "I"
 
 // no additional data
 
@@ -386,7 +401,7 @@ public:
     gsmDevice();
     ~gsmDevice();
 
-    STRING getError();
+    INT16 getError( STRING &errMsg );
     INT16 begin(gsmDevType devType);
 
 #ifndef linux
@@ -446,6 +461,9 @@ private:
     INT16 parseResponse( STRING response, STRING expect, STRING &result );
     INT16 scanCMSErrNum( STRING response, INT16 &errNo );
     INT16 scanCMEErrNum( STRING response, INT16 &errNo );
+    INT16 getDataIndex( STRING response, char _pattern[], INT16 patternLength, INT16 *pIndex );
+    INT16 parseCMGF( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCMGF *pData );
+
 
 #ifdef linux
     long millis();
