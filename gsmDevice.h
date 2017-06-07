@@ -297,9 +297,20 @@ enum networkRegistrationMode
 #define SIGNAL_QUALITY_CMD_TEST       "+CSQ=?"
 #define SIGNAL_QUALITY_CMD_EXEC       "+CSQ"
 
-struct signalQuality {
-    INT16 rssi;
-    INT16 ber;
+#define executeResponseFmtCSQ         "%d, %d \r\n"
+#define testResponseFmtCSQ            "(%d-%d,%d),(%d-%d,%d)\r\n"
+
+struct _dataCSQ {
+    int rssi;
+    int ber;
+
+    int rssiFrom;
+    int rssiTo;
+    int rssiUnknown;
+
+    int berFrom;
+    int berTo;
+    int berUnknown;
 };
 
 // -------------
@@ -434,7 +445,7 @@ public:
                                   STRING &result, void *pParam = NULL );
     INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, 
                                   STRING &result, void *pParam = NULL );
-    INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData,
+    INT16 signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
                                   STRING &result, void *pParam = NULL );
     INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, 
                                   STRING &result, void *pParam = NULL );
@@ -463,6 +474,7 @@ private:
     INT16 scanCMEErrNum( STRING response, INT16 &errNo );
     INT16 getDataIndex( STRING response, char _pattern[], INT16 patternLength, INT16 *pIndex );
     INT16 parseCMGF( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCMGF *pData );
+    INT16 parseCSQ( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCSQ *pData );
 
 
 #ifdef linux

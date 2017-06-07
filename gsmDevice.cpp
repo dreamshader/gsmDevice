@@ -1134,7 +1134,7 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
                                 if( (retVal = getDataIndex(result, _pattern, GSMDEVICE_RESP_PATTERN_LEN, 
                                                             &dataIndex ) == GSMDEVICE_SUCCESS) )
                                 {
-                                    fprintf(stderr, "scan for [%s] from index %d\n", _pattern, dataIndex);
+fprintf(stderr, "scan for [%s] from index %d\n", _pattern, dataIndex);
                                     retVal = parseCMGF( cmdMode, result, _pattern, dataIndex, &Settings );
                                 }
                             }
@@ -1477,7 +1477,7 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistratio
 //
 // Expected arguments:
 // - gsmCommandMode cmdMode        cmd_test or cmd_execute
-// - struct signalQuality *pData   to hold current values
+// - struct _dataCSQ *pData   to hold current values
 // - STRING &result                reference to hold result string
 // - void *pParam                  pointer to additional parameters
 // 
@@ -1490,13 +1490,16 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistratio
 //
 // ************************************************************************
 //
-INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct signalQuality *pData,
+INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
     STRING command = EMPTY_STRING;
     STRING dummy = EMPTY_STRING;
     INT16 errNo;
+    char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
+    INT16 dataIndex;
+    struct _dataCSQ Settings;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1536,11 +1539,20 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct signalQuality *pD
                 case linuxDevice:
                     if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
+                        memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
                         retVal = readResponse( result, false, NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
-                            retVal = checkResponse( result, dummy );
+                            if( (retVal = checkResponse( result, dummy )) == GSMDEVICE_SUCCESS )
+                            {
+                                if( (retVal = getDataIndex(result, _pattern, GSMDEVICE_RESP_PATTERN_LEN, 
+                                                            &dataIndex ) == GSMDEVICE_SUCCESS) )
+                                {
+fprintf(stderr, "scan for [%s] from index %d\n", _pattern, dataIndex);
+                                    retVal = parseCSQ( cmdMode, result, _pattern, dataIndex, &Settings );
+                                }
+                            }
                         }
                     }
                     break;
@@ -3339,6 +3351,133 @@ INT16 gsmDevice::parseCMGF( gsmCommandMode cmdMode, STRING response, char _patte
     return( _lastError = retVal );
 }
 
+// ////////////////////////////////////////////////////////////////////////
+//
+// parseCSQ
+//   - parse response of AT+CSQ command
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode  mode of call
+// - STRING response         holds response string
+// - char _pattern[]         pattern will be stored here
+// - INT16 dataIndex         index within string
+// - struct _dataCSQ *pData  points to data structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_RESULT    no result found
+// - GSMDEVICE_E_INVAL     invalid result parameter
+// - GSMDEVICE_E_TOO_SHORT response string too short
+// - GSMDEVICE_E_CMD_MODE  command mode invalid
+// - GSMDEVICE_E_P_NULL    response is empty string or NULL
+//
+// - GSMDEVICE_E_PATTERN  no pattern in response found
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::parseCSQ( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCSQ *pData )
+{
+    INT16 retVal;
+    char *_tmpRawString;
+
+    int cmgfMode;
+    int cmgfMode1, cmgfMode2;
+
+    if( pData != NULL )
+    {
+        if( (dataIndex+strlen(_pattern)) < response.length() )
+        {
+            if( (_tmpRawString = response.c_str()) != NULL )
+            {
+                _tmpRawString += dataIndex;
+
+                if( *_tmpRawString != _pattern[0] )
+                {
+// fprintf(stderr, "seems to be no data >%s\n", _tmpRawString );
+                    retVal = GSMDEVICE_E_RESULT;
+                }
+                else
+                {
+// fprintf(stderr, "Go skipping pattern [%s] >%s\n", _pattern, _tmpRawString ); 
+                    _tmpRawString += strlen(_pattern);
+// fprintf(stderr, "skipped pattern >%s\n",  _tmpRawString ); 
+
+                    switch( cmdMode )
+                    {
+                        case cmd_test:
+                            if( sscanf( _tmpRawString, testResponseFmtCSQ, &pData->rssiFrom, &pData->rssiTo,
+                                        &pData->rssiUnknown, &pData->berFrom, &pData->berTo, &pData->berUnknown ) == 6 )
+                            {
+
+fprintf(stderr, "VALID CSQ data found for test mode\n");
+fprintf(stderr, "     rssiFrom: %d, rssiTo: %d, rssiUnknown: %d\n", pData->rssiFrom, pData->rssiTo, pData->rssiUnknown );
+fprintf(stderr, "     berFrom: %d, berTo: %d, berUnknown: %d\n", pData->berFrom, pData->berTo, pData->berUnknown );
+
+                                retVal = GSMDEVICE_SUCCESS;
+                            }
+                            else
+                            {
+                                retVal = GSMDEVICE_E_RESULT;
+                            }
+                            break;
+                        case cmd_read:
+                        case cmd_set:
+                            break;
+                        case cmd_execute:
+                            if( sscanf( _tmpRawString, executeResponseFmtCSQ, &pData->rssi, &pData->ber ) == 2 )
+                            {
+fprintf(stderr, "VALID CSQ data found for execute mode\n");
+fprintf(stderr, "     rssi: %d, ber: %d\n", pData->rssi, pData->ber );
+
+                                retVal = GSMDEVICE_SUCCESS;
+                            }
+                            else
+                            {
+                                retVal = GSMDEVICE_E_RESULT;
+                            }
+                            break;
+                        default:
+                            retVal = GSMDEVICE_E_CMD_MODE;
+                    }
+                }
+            }
+            else
+            {
+                retVal = GSMDEVICE_E_P_NULL;
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_E_TOO_SHORT;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_E_P_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // 
@@ -3349,93 +3488,94 @@ INT16 gsmDevice::parseCMGF( gsmCommandMode cmdMode, STRING response, char _patte
 COMMAND NO RESPONSE!
 
 
+TEMPLATE FOR SCANNER
 
-device init successful.
-device synchronized successful.
-select command response format returns: 0
-result: [ATV1
 
-OK
-]
-select sms message format returns: 0
-result: [AT+CMGF=?
+// ////////////////////////////////////////////////////////////////////////
+//
+// parseCSQ
+//   - parse response of AT+CSQ command
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode  mode of call
+// - STRING response         holds response string
+// - char _pattern[]         pattern will be stored here
+// - INT16 dataIndex         index within string
+// - struct _dataCMGF *pData points to data structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_RESULT    no result found
+// - GSMDEVICE_E_INVAL     invalid result parameter
+// - GSMDEVICE_E_TOO_SHORT response string too short
+// - GSMDEVICE_E_CMD_MODE  command mode invalid
+// - GSMDEVICE_E_P_NULL    response is empty string or NULL
+//
+// - GSMDEVICE_E_PATTERN  no pattern in response found
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::parseCSQ( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCMGF *pData )
+{
+    INT16 retVal;
+    char *_tmpRawString;
 
-+CMGF:(0,1)
+    int cmgfMode;
+    int cmgfMode1, cmgfMode2;
 
-OK
-]
-select sms message format returns: 0
-result: [AT+CMGF?
+    if( pData != NULL )
+    {
+        if( (dataIndex+strlen(_pattern)) < response.length() )
+        {
+            if( (_tmpRawString = response.c_str()) != NULL )
+            {
+                _tmpRawString += dataIndex;
 
-+CMGF: 1
+                if( *_tmpRawString != _pattern[0] )
+                {
+// fprintf(stderr, "seems to be no data >%s\n", _tmpRawString );
+                    retVal = GSMDEVICE_E_RESULT;
+                }
+                else
+                {
+// fprintf(stderr, "Go skipping pattern [%s] >%s\n", _pattern, _tmpRawString ); 
+                    _tmpRawString += strlen(_pattern);
+// fprintf(stderr, "skipped pattern >%s\n",  _tmpRawString ); 
 
-OK
-]
-select sms message format returns: 0
-result: [AT+CMGF=0
+                    switch( cmdMode )
+                    {
+                        case cmd_test:
+                            break;
+                        case cmd_read:
+                            break;
+                        case cmd_set:
+                        case cmd_execute:
+                            break;
+                        default:
+                            retVal = GSMDEVICE_E_CMD_MODE;
+                    }
+                }
+            }
+            else
+            {
+                retVal = GSMDEVICE_E_P_NULL;
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_E_TOO_SHORT;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_E_P_NULL;
+    }
 
-OK
-]
-select sms message format returns: 0
-result: [AT+CMGF=1
 
-OK
-]
-command echo returns: 0
-result: [ATE1
+    return( _lastError = retVal );
+}
 
-OK
-]
-network registration returns: 0
-result: [AT+CREG=2
 
-OK
-]
-network registration returns: 0
-result: [AT+CREG?
-
-+CREG: 2,1,"0340","22D1"
-
-OK
-]
-signal quality returns: 0
-result: [AT+CSQ
-
-+CSQ: 15,99
-
-OK
-]
-preferred oper list returns: 0
-result: [AT+CPOL=?
-
-+CPOL: (1-100),(0,2)
-
-OK
-]
-request IMSI returns: 0
-result: [AT+CIMI=?
-
-OK
-]
-read/write IMEI returns: -1
-result: [AT+EGMR=2,7
-
-+EGMR:867567021329508]
-request revision returns: -200
-result: [AT+CMGR
-
-+CMS ERROR:303
-]
-request manufacturer data returns: 0
-result: [ATI0
-
-Ai Thinker Co.LTD
-A6 
-V03.03.20161229019H03
-
-OK
-]
-DONE!
 
 // 
 // -------------------NOTHING IMPORTAN BEHIND THIS LINE -----------------
