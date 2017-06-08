@@ -1,3 +1,33 @@
+//
+// ************************************************************************
+//
+// part of gsmDevice (c) 2017 Dirk Schanz aka dreamshader
+//    supports a subset of GSM AT commands
+//
+// ************************************************************************
+//
+// At this point a "thank you very much" to all the authors sharing
+// their work, knowledge and all the very useful stuff.
+// You did a great job!
+//
+// ************************************************************************
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// ************************************************************************
+//
+
 #ifndef _GSMDEVICE_H_
 #define _GSMDEVICE_H_
 
@@ -292,6 +322,22 @@ enum networkRegistrationMode
     enableNetwRegUnsolLoc = 2
 };
 
+#define GSM_BASESTATION_LAC_LENGTH     4
+#define GSM_BASESTATION_CI_LENGTH      4
+
+#define testResponseFmtCREG            "%d, %d\r\n"
+#define readResponseFmtCREG            "%d, %d, \"%4s\", \"%4s\" \r\n"
+
+struct _dataCREG {
+    networkRegistrationMode mode;
+    int fromMode;
+    int toMode;
+    int stat;
+    char lac[GSM_BASESTATION_LAC_LENGTH+1];
+    char ci[GSM_BASESTATION_CI_LENGTH+1];
+};
+
+
 // -------------
 
 #define SIGNAL_QUALITY_CMD_TEST       "+CSQ=?"
@@ -334,6 +380,16 @@ enum prefOperList
 
 // no additional data
 
+#define GSM_MAX_IMSI_LENGTH           15
+
+struct _dataIMSI {
+    INT16 _length;
+    char _raw[GSM_MAX_IMSI_LENGTH+1];
+};
+
+#define setResponseFmtIMSI            "%15s\r\n"
+
+
 // -------------
 
 #define READ_WRITE_IMEI_CMD_TEST      "+EGMR=?"
@@ -345,11 +401,17 @@ enum rwIMEIMode
     imeiReadMode = 2
 };
 
-struct rwIMEIData {
+#define GSM_MAX_IMEI_LENGTH           15
+
+struct _dataEGMR {
     rwIMEIMode mode;
     INT16 format;
     STRING IMEI;
+    char _raw[GSM_MAX_IMEI_LENGTH+1];
+    int _length;
 };
+
+#define setResponseFmtEGMR            "%15s\r\n"
 
 // -------------
 
@@ -449,9 +511,9 @@ public:
                                   STRING &result, void *pParam = NULL );
     INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, 
                                   STRING &result, void *pParam = NULL );
-    INT16 requestIMSI( gsmCommandMode cmdMode, void *pIgnored, 
+    INT16 requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI *pData, 
                                   STRING &result, void *pParam = NULL );
-    INT16 readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData *pData, 
+    INT16 readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR *pData, 
                                   STRING &result, void *pParam = NULL );
     INT16 requestRevisionId( gsmCommandMode cmdMode, void *pIgnored, 
                                   STRING &result, void *pParam = NULL );
@@ -475,6 +537,11 @@ private:
     INT16 getDataIndex( STRING response, char _pattern[], INT16 patternLength, INT16 *pIndex );
     INT16 parseCMGF( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCMGF *pData );
     INT16 parseCSQ( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCSQ *pData );
+    INT16 parseIMSI( gsmCommandMode cmdMode, STRING response,  struct _dataIMSI *pData );
+    INT16 parseEGMR( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataEGMR *pData );
+    INT16 removeEcho( STRING &result, STRING &dummy );
+    INT16 parseCREG( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCREG *pData );
+
 
 
 #ifdef linux
