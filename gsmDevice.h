@@ -270,7 +270,7 @@ enum smsMessageFormat
 #define testResponseFmtCMGF           "(%d,%d)\r\n"
 
 struct _dataCMGF {
-    int current;
+    smsMessageFormat current;
     int from;
     int to;
 };
@@ -497,7 +497,7 @@ public:
     //
     //  gsm commands supported
     //
-    INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, 
+    INT16 smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData, 
                         STRING &result, void *pParam = NULL );
     INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
                         STRING &result, void *pParam = NULL );
@@ -505,7 +505,7 @@ public:
                                   STRING &result, void *pParam = NULL );
     INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, 
                                   STRING &result, void *pParam = NULL );
-    INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, 
+    INT16 networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData, 
                                   STRING &result, void *pParam = NULL );
     INT16 signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
                                   STRING &result, void *pParam = NULL );

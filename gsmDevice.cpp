@@ -1061,7 +1061,7 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
 //
 // ************************************************************************
 //
-INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt, 
+INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData, 
                                STRING &result, void *pParam )
 {
     INT16 retVal;
@@ -1070,7 +1070,6 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
     STRING dummy = EMPTY_STRING;
     INT16 errNo;
     INT16 dataIndex;
-    struct _dataCMGF Settings;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1079,77 +1078,84 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat *pFmt,
     }
     else
     {
-        switch( cmdMode )
+        if( pData != NULL )
         {
-            case cmd_test:
-                command = GSMDEVICE_ATTENTION;
-                command += SMS_MSG_FORMAT_CMD_TEST;
-                command += CRLF_STRING;
-                retVal = GSMDEVICE_SUCCESS;
-                break;
-            case cmd_read:
-                command = GSMDEVICE_ATTENTION;
-                command += SMS_MSG_FORMAT_CMD_READ;
-                command += CRLF_STRING;
-                retVal = GSMDEVICE_SUCCESS;
-                break;
-            case cmd_set:
-                if( *pFmt == smsPDUMode ||
-                    *pFmt == smsTXTMode    )
-                {
+            switch( cmdMode )
+            {
+                case cmd_test:
                     command = GSMDEVICE_ATTENTION;
-                    command += SMS_MSG_FORMAT_CMD_SET;
-                    command += STRING(*pFmt);
+                    command += SMS_MSG_FORMAT_CMD_TEST;
                     command += CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
-                }
-                else
-                {
-                    retVal = GSMDEVICE_E_CMD_MODE;
-                }
-                break;
-            default:
-                retVal = GSMDEVICE_E_CMD_MODE;
-                break;
-
-        }
-
-
-        if( retVal == GSMDEVICE_SUCCESS )
-        {
-            result = EMPTY_STRING;
-
-            switch( _cmdPortType )
-            {
-                case swSerial:
-                case hwSerial:
-                case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    break;
+                case cmd_read:
+                    command = GSMDEVICE_ATTENTION;
+                    command += SMS_MSG_FORMAT_CMD_READ;
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
+                    break;
+                case cmd_set:
+                    if( pData->current == smsPDUMode ||
+                        pData->current == smsTXTMode    )
                     {
-                        memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        command = GSMDEVICE_ATTENTION;
+                        command += SMS_MSG_FORMAT_CMD_SET;
+                        command += STRING(pData->current);
+                        command += CRLF_STRING;
+                        retVal = GSMDEVICE_SUCCESS;
+                    }
+                    else
+                    {
+                        retVal = GSMDEVICE_E_CMD_MODE;
+                    }
+                    break;
+                default:
+                    retVal = GSMDEVICE_E_CMD_MODE;
+                    break;
 
-                        if( retVal == GSMDEVICE_SUCCESS )
+            }
+
+
+            if( retVal == GSMDEVICE_SUCCESS )
+            {
+                result = EMPTY_STRING;
+
+                switch( _cmdPortType )
+                {
+                    case swSerial:
+                    case hwSerial:
+                    case linuxDevice:
+                        if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                         {
-                            if( (retVal = checkResponse( result, dummy )) == GSMDEVICE_SUCCESS )
+                            memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
+                            retVal = readResponse( result, false, NO_TIMEOUT );
+
+                            if( retVal == GSMDEVICE_SUCCESS )
                             {
-                                if( (retVal = getDataIndex(result, _pattern, GSMDEVICE_RESP_PATTERN_LEN, 
-                                                            &dataIndex ) == GSMDEVICE_SUCCESS) )
+                                if( (retVal = checkResponse( result, dummy )) == GSMDEVICE_SUCCESS )
                                 {
+                                    if( (retVal = getDataIndex(result, _pattern, GSMDEVICE_RESP_PATTERN_LEN, 
+                                                                &dataIndex ) == GSMDEVICE_SUCCESS) )
+                                    {
 // fprintf(stderr, "scan for [%s] from index %d\n", _pattern, dataIndex);
-                                    retVal = parseCMGF( cmdMode, result, _pattern, dataIndex, &Settings );
+                                        retVal = parseCMGF( cmdMode, result, _pattern, dataIndex, pData );
+                                    }
                                 }
                             }
                         }
-                    }
-                    break;
-                case streamType:
-                    retVal = GSMDEVICE_E_SUPPORTED;
-                    break;
-                case nodev:
-                default:
-                    retVal = GSMDEVICE_E_INIT;
+                        break;
+                    case streamType:
+                        retVal = GSMDEVICE_E_SUPPORTED;
+                        break;
+                    case nodev:
+                    default:
+                        retVal = GSMDEVICE_E_INIT;
+                }
             }
+        }
+        else
+        {
+            retVal = GSMDEVICE_E_P_NULL;
         }
     }
 
@@ -1373,10 +1379,10 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
 // - detect/set mode of network registration
 //
 // Expected arguments:
-// - gsmCommandMode cmdMode         cmd_test, cmd_read or cmd_set
-// - networkRegistrationMode *pFmt  holds new/current value
-// - STRING &result                 reference to hold result string
-// - void *pParam                   pointer to additional parameters
+// - gsmCommandMode cmdMode     cmd_test, cmd_read or cmd_set
+// - _dataCREG *pData           holds new/current value
+// - STRING &result             reference to hold result string
+// - void *pParam               pointer to additional parameters
 // 
 // Returns an INT16 as status code:
 // - GSMDEVICE_SUCCESS on succes, or
@@ -1387,7 +1393,7 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
 //
 // ************************************************************************
 //
-INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode *pFmt, 
+INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData, 
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
@@ -1396,7 +1402,6 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistratio
     INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
-    struct _dataCREG Settings;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1405,78 +1410,85 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, networkRegistratio
     }
     else
     {
-        switch( cmdMode )
+        if( pData != NULL )
         {
-            case cmd_test:
-                command = GSMDEVICE_ATTENTION;
-                command += NETWORK_REGISTRATION_CMD_TEST;
-                command += CRLF_STRING;
-                retVal = GSMDEVICE_SUCCESS;
-                break;
-            case cmd_read:
-                command = GSMDEVICE_ATTENTION;
-                command += NETWORK_REGISTRATION_CMD_READ;
-                command += CRLF_STRING;
-                retVal = GSMDEVICE_SUCCESS;
-                break;
-            case cmd_set:
-                if( *pFmt == disableNetwRegUnsol ||
-                    *pFmt == enableNetwRegUnsol ||
-                    *pFmt == enableNetwRegUnsolLoc )
-
-                {
+            switch( cmdMode )
+            {
+                case cmd_test:
                     command = GSMDEVICE_ATTENTION;
-                    command += NETWORK_REGISTRATION_CMD_SET;
-                    command += STRING(*pFmt);
+                    command += NETWORK_REGISTRATION_CMD_TEST;
                     command += CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
-                }
-                else
-                {
-                    retVal = GSMDEVICE_E_CMD_MODE;
-                }
-                break;
-            default:
-                retVal = GSMDEVICE_E_CMD_MODE;
-                break;
-        }
+                    break;
+                case cmd_read:
+                    command = GSMDEVICE_ATTENTION;
+                    command += NETWORK_REGISTRATION_CMD_READ;
+                    command += CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
+                    break;
+                case cmd_set:
+                    if( pData->mode == disableNetwRegUnsol ||
+                        pData->mode == enableNetwRegUnsol ||
+                        pData->mode == enableNetwRegUnsolLoc )
 
-
-        if( retVal == GSMDEVICE_SUCCESS )
-        {
-            result = EMPTY_STRING;
-
-            switch( _cmdPortType )
-            {
-                case swSerial:
-                case hwSerial:
-                case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
-                        memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        command = GSMDEVICE_ATTENTION;
+                        command += NETWORK_REGISTRATION_CMD_SET;
+                        command += STRING(pData->mode);
+                        command += CRLF_STRING;
+                        retVal = GSMDEVICE_SUCCESS;
+                    }
+                    else
+                    {
+                        retVal = GSMDEVICE_E_CMD_MODE;
+                    }
+                    break;
+                default:
+                    retVal = GSMDEVICE_E_CMD_MODE;
+                    break;
+            }
 
-                        if( retVal == GSMDEVICE_SUCCESS )
+
+            if( retVal == GSMDEVICE_SUCCESS )
+            {
+                result = EMPTY_STRING;
+
+                switch( _cmdPortType )
+                {
+                    case swSerial:
+                    case hwSerial:
+                    case linuxDevice:
+                        if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                         {
-                            if( (retVal = checkResponse( result, dummy )) == GSMDEVICE_SUCCESS )
+                            memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
+                            retVal = readResponse( result, false, NO_TIMEOUT );
+
+                            if( retVal == GSMDEVICE_SUCCESS )
                             {
-                                if( (retVal = getDataIndex(result, _pattern, GSMDEVICE_RESP_PATTERN_LEN, 
-                                                            &dataIndex ) == GSMDEVICE_SUCCESS) )
+                                if( (retVal = checkResponse( result, dummy )) == GSMDEVICE_SUCCESS )
                                 {
+                                    if( (retVal = getDataIndex(result, _pattern, GSMDEVICE_RESP_PATTERN_LEN, 
+                                                                &dataIndex ) == GSMDEVICE_SUCCESS) )
+                                    {
 // fprintf(stderr, "scan for [%s] from index %d\n", _pattern, dataIndex);
-                                    retVal = parseCREG( cmdMode, result, _pattern, dataIndex, &Settings );
+                                        retVal = parseCREG( cmdMode, result, _pattern, dataIndex, pData );
+                                    }
                                 }
                             }
                         }
-                    }
-                    break;
-                case streamType:
-                    retVal = GSMDEVICE_E_SUPPORTED;
-                    break;
-                case nodev:
-                default:
-                    retVal = GSMDEVICE_E_INIT;
+                        break;
+                    case streamType:
+                        retVal = GSMDEVICE_E_SUPPORTED;
+                        break;
+                    case nodev:
+                    default:
+                        retVal = GSMDEVICE_E_INIT;
+                }
             }
+        }
+        else
+        {
+            retVal = GSMDEVICE_E_P_NULL;
         }
     }
 
@@ -1513,7 +1525,6 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
     INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
-    struct _dataCSQ Settings;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1564,7 +1575,7 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
                                                             &dataIndex ) == GSMDEVICE_SUCCESS) )
                                 {
 // fprintf(stderr, "scan for [%s] from index %d\n", _pattern, dataIndex);
-                                    retVal = parseCSQ( cmdMode, result, _pattern, dataIndex, &Settings );
+                                    retVal = parseCSQ( cmdMode, result, _pattern, dataIndex, pData );
                                 }
                             }
                         }
@@ -3271,9 +3282,6 @@ INT16 gsmDevice::parseCMGF( gsmCommandMode cmdMode, STRING response, char _patte
     INT16 retVal;
     char *_tmpRawString;
 
-    int cmgfMode;
-    int cmgfMode1, cmgfMode2;
-
     if( pData != NULL )
     {
         if( (dataIndex+strlen(_pattern)) < response.length() )
@@ -3296,20 +3304,18 @@ INT16 gsmDevice::parseCMGF( gsmCommandMode cmdMode, STRING response, char _patte
                     switch( cmdMode )
                     {
                         case cmd_test:
-                            if( sscanf( _tmpRawString, testResponseFmtCMGF, &cmgfMode1, &cmgfMode2 ) == 2 )
+                            if( sscanf( _tmpRawString, testResponseFmtCMGF, &pData->from, &pData->to ) == 2 )
                             {
-                                switch( cmgfMode1 )
+                                switch( pData->from )
                                 {
                                     case smsPDUMode:
                                     case smsTXTMode:
-                                        fprintf(stderr, "VALID cmgfMode 1 found: %d\n", cmgfMode1); 
-                                        switch( cmgfMode2 )
+// fprintf(stderr, "VALID cmgfMode 1 found: %d\n", pData->from); 
+                                        switch( pData->to )
                                         {
                                             case smsPDUMode:
                                             case smsTXTMode:
-// fprintf(stderr, "VALID cmgfMode 2 found: %d\n", cmgfMode2); 
-                                                pData->from = cmgfMode1;
-                                                pData->to = cmgfMode2;
+// fprintf(stderr, "VALID cmgfMode 2 found: %d\n", pData->to); 
                                                 retVal = GSMDEVICE_SUCCESS;
                                                 break;
                                             default:
@@ -3331,18 +3337,17 @@ INT16 gsmDevice::parseCMGF( gsmCommandMode cmdMode, STRING response, char _patte
                             }
                             break;
                         case cmd_read:
-                            if( sscanf( _tmpRawString, readResponseFmtCMGF, &cmgfMode ) == 1 )
+                            if( sscanf( _tmpRawString, readResponseFmtCMGF, (int*) &pData->current ) == 1 )
                             {
-                                switch( cmgfMode )
+                                switch( pData->current )
                                 {
                                     case smsPDUMode:
                                     case smsTXTMode:
-// fprintf(stderr, "VALID cmgfMode found: %d\n", cmgfMode); 
+// fprintf(stderr, "VALID cmgfMode found: %d\n", pData->current); 
                                         retVal = GSMDEVICE_SUCCESS;
-                                        pData->current = cmgfMode;
                                         break;
                                     default:
-// fprintf(stderr, "NO VALID cmgfMode found\n"); 
+// fprintf(stderr, "NO VALID cmgfMode found: %d\n", pData->current); 
                                         retVal = GSMDEVICE_E_INVAL;
                                         break;
                                 }
@@ -3904,7 +3909,7 @@ TEMPLATE FOR SCANNER
 // - STRING response         holds response string
 // - char _pattern[]         pattern will be stored here
 // - INT16 dataIndex         index within string
-// - struct _dataCMGF *pData points to data structure
+// - struct _dataCSQ *pData  points to data structure
 // 
 // Returns an INT16 as status code:
 // - GSMDEVICE_SUCCESS on succes, or
@@ -3918,7 +3923,7 @@ TEMPLATE FOR SCANNER
 // - GSMDEVICE_E_PATTERN  no pattern in response found
 // ////////////////////////////////////////////////////////////////////////
 //
-INT16 gsmDevice::parseCSQ( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCMGF *pData )
+INT16 gsmDevice::parseCSQ( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCSQ *pData )
 {
     INT16 retVal;
     char *_tmpRawString;
