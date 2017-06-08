@@ -140,6 +140,7 @@ extern "C" {
 #define GSMDEVICE_E_RESULT            -41
 #define GSMDEVICE_E_INVAL             -42
 #define GSMDEVICE_E_TOO_SHORT         -43
+#define GSMDEVICE_E_FMT               -44
 
 #define GSMDEVICE_E_CME              -100
 #define GSMDEVICE_E_CME_UNKNOWN      -101
@@ -300,6 +301,12 @@ enum opSelectMode
     opSelectManualAuto = 4
 };
 
+
+
+
+
+
+
 // -------------
 
 #define ECHO_COMMAND_CMD_EXEC         "E"
@@ -369,8 +376,42 @@ enum prefOperList
 {
     prefOperLongAlphaMode  = 0,
     prefOperShortAlphaMode = 1,
-    prefOperNumericMode    = 2
+    prefOperNumericMode    = 2,
+    prefOperIgnore         = 3
 };
+
+#define testResponseFmtCPOL           "(%d-%d),(%d,%d)\r\n"
+#define readResponseFmtCPOL           "%d,%d,%s\r\n"
+#define GSMDEVICE_CMD_CPOL_NULL_INDEX -1
+
+struct _dataCPOL {
+    // cmd_test param
+    int fromIndex;
+    int toIndex;
+    prefOperList fromFormat;
+    prefOperList toFormat;
+    // cmd_set param
+    int index;
+    prefOperList format;
+    STRING oper;
+    // cmd_read param
+    STRING list;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // -------------
 
@@ -509,7 +550,7 @@ public:
                                   STRING &result, void *pParam = NULL );
     INT16 signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
                                   STRING &result, void *pParam = NULL );
-    INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList *pMode, 
+    INT16 preferredOperatorList( gsmCommandMode cmdMode, _dataCPOL *pData, 
                                   STRING &result, void *pParam = NULL );
     INT16 requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI *pData, 
                                   STRING &result, void *pParam = NULL );
@@ -541,6 +582,7 @@ private:
     INT16 parseEGMR( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataEGMR *pData );
     INT16 removeEcho( STRING &result, STRING &dummy );
     INT16 parseCREG( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCREG *pData );
+    INT16 parseCPOL( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCPOL *pData );
 
 
 
