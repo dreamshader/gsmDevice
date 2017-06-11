@@ -90,22 +90,22 @@ extern "C" {
 //
 // internal used definitions
 
-#define GSMDEV_SYNC_MAX_CMD            10
-#define GSMDEV_SYNC_MAX_TOTAL         200
-#define GSMDEV_SYNC_DELAY              20
-#define GSMDEV_SYNC_CMD               "AT\r\n"
-#define GSMDEV_SYNC_RSP               "OK"
-#define GSMDEV_READ_TIMEOUT         30000   // up to 30 sec. response time
-#define GSMDEV_READ_DELAY             100
+#define GSMDEVICE_SYNC_MAX_CMD         10
+#define GSMDEVICE_SYNC_MAX_TOTAL      200
+#define GSMDEVICE_SYNC_DELAY           20
+#define GSMDEVICE_SYNC_CMD            "AT\r\n"
+#define GSMDEVICE_SYNC_RSP            "OK"
+#define GSMDEVICE_READ_TIMEOUT      30000   // up to 30 sec. response time
+#define GSMDEVICE_READ_DELAY          100
 
 //
 // parameter values
 
-#define NULL_PIN                        0
-#define NULL_STREAM                  NULL
-#define NO_SPEED                        0
-#define NO_TIMEOUT                      0
-#define NO_SERIAL                       0
+#define GSMDEVICE_NULL_PIN              0
+#define GSMDEVICE_NULL_STREAM        NULL
+#define GSMDEVICE_NO_SPEED              0
+#define GSMDEVICE_NO_TIMEOUT            0
+#define GSMDEVICE_NO_SERIAL             0
 
 #define GSMDEVICE_DEF_CMD_SPEED      9600
 #define GSMDEVICE_SWSERIAL_MAX_BAUD 19200
@@ -142,19 +142,30 @@ extern "C" {
 #define GSMDEVICE_E_TOO_SHORT         -43
 #define GSMDEVICE_E_FMT               -44
 
+#define GSMDEVICE_LIST_E_TYPE         -50
+#define GSMDEVICE_LIST_E_ACTION       -51
+#define GSMDEVICE_LIST_E_PATTERN      -52
+#define GSMDEVICE_LIST_E_NULL         -53
+#define GSMDEVICE_LIST_E_EMPTY        -54
+#define GSMDEVICE_LIST_E_FOUND        -55
+#define GSMDEVICE_LIST_E_NO_MORE      -56
+#define GSMDEVICE_LIST_E_NO_PREV      -57
+#define GSMDEVICE_LIST_E_SUPPORTED    -58
+
 #define GSMDEVICE_E_CME              -100
 #define GSMDEVICE_E_CME_UNKNOWN      -101
 #define GSMDEVICE_E_CMS              -200
 #define GSMDEVICE_E_CMS_UNKNOWN      -201
-
+ 
+ 
 
 //
 // misc. definitons
 
-#define EMPTY_STRING          ""
-#define CR_STRING             "\r"
-#define LF_STRING             "\n"
-#define CRLF_STRING           "\r\n"
+#define GSMDEVICE_EMPTY_STRING        ""
+#define GSMDEVICE_CR_STRING           "\r"
+#define GSMDEVICE_LF_STRING           "\n"
+#define GSMDEVICE_CRLF_STRING         "\r\n"
 
 // 
 // ---------------------- TYPES - NOT GSM RELATED -----------------------
@@ -220,6 +231,41 @@ enum gsmDevType
 struct _gsm_errcode2msg {
     INT16 errcode;
     const char *pMessage;
+};
+
+
+// 
+// --------------------------- LIST MANAGEMENT --------------------------
+//
+
+#define GSMDEVICE_LIST_BUFFER_LEN     130
+
+enum _listType 
+{
+    listTypeCPOL,
+    listTypeOTHER
+};
+
+enum _listAction
+{
+    firstItem,
+    nextItem,
+    prevItem,
+    lastItem,
+    currItem,
+    findItem,
+    findPrevItem,
+    findNextItem,
+    findLastItem
+};
+
+
+struct _listInString {
+    _listType _type;
+    int       _current;
+    int       _iCurrent;
+    char      _tmpBuffer[GSMDEVICE_LIST_BUFFER_LEN+1];
+    char     *_list;
 };
 
 
@@ -381,7 +427,7 @@ enum prefOperList
 };
 
 #define testResponseFmtCPOL           "(%d-%d),(%d,%d)\r\n"
-#define readResponseFmtCPOL           "%d,%d,%s\r\n"
+#define readResponseFmtCPOL           "+CPOL: %d,%d,%s\r\n"
 #define GSMDEVICE_CMD_CPOL_NULL_INDEX -1
 
 struct _dataCPOL {
@@ -519,15 +565,15 @@ public:
     INT16 begin(gsmDevType devType);
 
 #ifndef linux
-    INT16 init(INT16 rxPin = NULL_PIN, INT16 txPin = NULL_PIN, 
-             INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);
-    INT16 init(INT16 serialNo = NO_SERIAL, INT32 speed = NO_SPEED, 
-             INT32 timeout = NO_TIMEOUT);
-    INT16 init(STREAM *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT);
-    INT16 init(SW_SERIAL *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT);
-    INT16 init(HW_SERIAL *output = NULL_STREAM, INT32 timeout = NO_TIMEOUT);
+    INT16 init(INT16 rxPin = GSMDEVICE_NULL_PIN, INT16 txPin = GSMDEVICE_NULL_PIN, 
+             INT32 speed = GSMDEVICE_NO_SPEED, INT32 timeout = GSMDEVICE_NO_TIMEOUT);
+    INT16 init(INT16 serialNo = GSMDEVICE_NO_SERIAL, INT32 speed = GSMDEVICE_NO_SPEED, 
+             INT32 timeout = GSMDEVICE_NO_TIMEOUT);
+    INT16 init(STREAM *output = GSMDEVICE_NULL_STREAM, INT32 timeout = GSMDEVICE_NO_TIMEOUT);
+    INT16 init(SW_SERIAL *output = GSMDEVICE_NULL_STREAM, INT32 timeout = GSMDEVICE_NO_TIMEOUT);
+    INT16 init(HW_SERIAL *output = GSMDEVICE_NULL_STREAM, INT32 timeout = GSMDEVICE_NO_TIMEOUT);
 #else // linux platform
-    INT16 init(DEVICENAME deviceName, INT32 speed = NO_SPEED, INT32 timeout = NO_TIMEOUT);
+    INT16 init(DEVICENAME deviceName, INT32 speed = GSMDEVICE_NO_SPEED, INT32 timeout = GSMDEVICE_NO_TIMEOUT);
     INT16 uartReadResponse( int fd, char *pResponse, int maxLen, long timeout );
     INT16 uartReadString( int fd, char *pResponse, int maxLen, int *pRead, long timeout );
     INT16 removeNullChars( char *pResponse, int maxLen );
@@ -562,6 +608,9 @@ public:
                                   STRING &result, void *pParam = NULL );
 
 
+    INT16 listMan( struct _listInString *list, _listAction action, char *_pattern, int _patLen, STRING &result, void *pData );
+    INT16 listManInitList( _listType type, struct _listInString *list, STRING srcList );
+
 
 private:
 
@@ -583,6 +632,21 @@ private:
     INT16 removeEcho( STRING &result, STRING &dummy );
     INT16 parseCREG( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCREG *pData );
     INT16 parseCPOL( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCPOL *pData );
+
+
+//    INT16 listMan( struct _listInString *list, _listAction action, char *_pattern, int _patLen, STRING &result, void *pData );
+//    INT16 listManInitList( _listType type, struct _listInString *list, STRING srcList );
+
+    INT16 listManFirst( struct _listInString *list, STRING &result, void *pData  = NULL );
+    INT16 listManNext( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManPrev( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManLast( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManCPOLFirst( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManCPOLNext( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManCPOLPrev( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManCPOLLast( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManGetLine( struct _listInString *list );
+
 
 
 

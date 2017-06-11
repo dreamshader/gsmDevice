@@ -121,7 +121,7 @@
 #ifdef linux
 
 //
-// ----------------------------------------------------------------------
+// ------------------------------------------------------------------------
 //
 
 // ------------------------------------------------------------------------
@@ -146,10 +146,10 @@ int gsmDevice::setupSerial(int fd, int speed)
 
         tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
         tty.c_cflag &= ~CSIZE;
-        tty.c_cflag |= CS8;         /* 8-bit characters */
-        tty.c_cflag &= ~PARENB;     /* no parity bit */
-        tty.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
-        tty.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
+        tty.c_cflag |= CS8;                 /* 8-bit characters */
+        tty.c_cflag &= ~PARENB;             /* no parity bit */
+        tty.c_cflag &= ~CSTOPB;             /* only need 1 stop bit */
+        tty.c_cflag &= ~CRTSCTS;            /* no hardware flowcontrol */
 
         /* setup for non-canonical mode */
         tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
@@ -174,11 +174,11 @@ int gsmDevice::setupSerial(int fd, int speed)
   return( _lastError = retVal );
 }
 
-// ----------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // void setSerialMin(int fd, int mcount)
 //
 // set minimal input charcters
-// ----------------------------------------------------------------------
+// ------------------------------------------------------------------------
 void gsmDevice::setSerialMin(int fd, int mcount)
 {
     struct termios tty;
@@ -199,8 +199,11 @@ void gsmDevice::setSerialMin(int fd, int mcount)
     }
 }
 
-
-
+// ------------------------------------------------------------------------
+// long millis
+//
+// a try to fake it because it's missing on a linux box
+// ------------------------------------------------------------------------
 long gsmDevice::millis()
 {
     long milliseconds;
@@ -212,6 +215,11 @@ long gsmDevice::millis()
     return( milliseconds );
 }
 
+// ------------------------------------------------------------------------
+// void delay
+//
+// a try to fake it because it's missing on a linux box
+// ------------------------------------------------------------------------
 void gsmDevice::delay(long msec)
 {
     long firstCall;
@@ -229,11 +237,26 @@ void gsmDevice::delay(long msec)
 }
 
 
+// 
+// -------------------------- linux String class --------------------------
+// ------------------ to avoid to use whole cpp overhead ------------------
+//
+
+// ------------------------------------------------------------------------
+// String()
+//
+// constructor - simple set data pointer to NULL
+// ------------------------------------------------------------------------
 String::String()
 {
     pData = NULL;
 }
 
+// ------------------------------------------------------------------------
+// String( const char* p )
+//
+// constructor - dup content of given char pointer
+// ------------------------------------------------------------------------
 String::String( const char* p )
 {
     if( p != NULL )
@@ -242,6 +265,11 @@ String::String( const char* p )
     }
 }
 
+// ------------------------------------------------------------------------
+// String( int v )
+//
+// constructor - create String from integer
+// ------------------------------------------------------------------------
 String::String( int v )
 {
     char *_tmp;
@@ -254,6 +282,11 @@ String::String( int v )
     
 }
 
+// ------------------------------------------------------------------------
+// length()
+//
+//  simply return length of String data
+// ------------------------------------------------------------------------
 int String::length()
 {
     int len = 0;
@@ -265,6 +298,11 @@ int String::length()
     return( len );
 }
 
+// ------------------------------------------------------------------------
+// length()
+//
+//  eliminate trailing and leading white spaces
+// ------------------------------------------------------------------------
 int String::trim()
 {
     if( pData != NULL )
@@ -311,12 +349,21 @@ int String::trim()
     return( 0 );
 }
 
+// ------------------------------------------------------------------------
+// c_str()
+//
+//  return data as char pointer
+// ------------------------------------------------------------------------
 char *String::c_str()
 {
     return( pData );
 }
 
-
+// ------------------------------------------------------------------------
+// indexOf(String p)
+//
+//  find a String within the String data
+// ------------------------------------------------------------------------
 int String::indexOf(String p)
 {
     if( pData != NULL && p.c_str() != NULL )
@@ -335,6 +382,11 @@ int String::indexOf(String p)
     return( -1 );
 }
 
+// ------------------------------------------------------------------------
+// some operators
+//
+// such as +. += 
+// ------------------------------------------------------------------------
 String String::operator+=(String p)
 {
     char *_tmp;
@@ -388,6 +440,7 @@ String String::operator+(const char *p)
 #endif // linux
 
 
+// **************************** gsmDevice class ***************************
 
 // 
 // ---------------------------- PUBLIC METHODS ----------------------------
@@ -419,10 +472,10 @@ gsmDevice::gsmDevice()
     _cmdPortType     = nodev;
     _dataPortType    = nodev;
     _devStatus       = created;
-    _cmdPortSpeed    = NO_SPEED;
-    _cmdPortTimeout  = NO_TIMEOUT;
-    _dataPortSpeed   = NO_SPEED;
-    _dataPortTimeout = NO_TIMEOUT;
+    _cmdPortSpeed    = GSMDEVICE_NO_SPEED;
+    _cmdPortTimeout  = GSMDEVICE_NO_TIMEOUT;
+    _dataPortSpeed   = GSMDEVICE_NO_SPEED;
+    _dataPortTimeout = GSMDEVICE_NO_TIMEOUT;
 }
 
 
@@ -447,7 +500,7 @@ INT16 gsmDevice::begin(gsmDevType devType)
 {
     INT16 retVal;
 
-    if( _cmdPortType  == nodev ||
+    if( _cmdPortType  == nodev ||             // call with no init before
         _devStatus    == created )
     {
         retVal = GSMDEVICE_E_INIT;
@@ -461,7 +514,7 @@ INT16 gsmDevice::begin(gsmDevType devType)
         else
         {
             _gsmDeviceType = devType;
-            retVal = syncWithResponse( GSMDEV_SYNC_CMD, GSMDEV_SYNC_RSP );
+            retVal = syncWithResponse( GSMDEVICE_SYNC_CMD, GSMDEVICE_SYNC_RSP );
         }
     }
 
@@ -495,25 +548,29 @@ INT16 gsmDevice::init(INT16 rxPin, INT16 txPin, INT32 speed,
 {
     INT16 retVal;
 
-    if( rxPin <= NULL_PIN )
+    // check for a valid Rx pin
+    if( rxPin <= GSMDEVICE_NULL_PIN )        
     {
         retVal = GSMDEVICE_E_P_RXPIN;
     }
     else
     {
-        if( txPin <= NULL_PIN )
+        // same for Tx pin
+        if( txPin <= GSMDEVICE_NULL_PIN )    
         {
             retVal = GSMDEVICE_E_P_TXPIN;
         }
         else
         {
-            if( speed < NO_SPEED || speed > GSMDEVICE_SWSERIAL_MAX_BAUD )
+            // transfer speed ok?
+            if( speed < GSMDEVICE_NO_SPEED || speed > GSMDEVICE_SWSERIAL_MAX_BAUD )
             {
                 retVal = GSMDEVICE_E_P_SPEED;
             }
             else
             {
-                if( timeout < NO_TIMEOUT )
+                // timeout value 0 or positive
+                if( timeout < GSMDEVICE_NO_TIMEOUT )
                 {
                     retVal = GSMDEVICE_E_P_TMOUT;
                 }
@@ -526,7 +583,8 @@ INT16 gsmDevice::init(INT16 rxPin, INT16 txPin, INT32 speed,
                     _cmdPortTimeout = timeout;
                     _devStatus      = initialized;
 
-                    if( speed != NO_SPEED )
+                    // not the default?
+                    if( speed != GSMDEVICE_NO_SPEED )
                     {
                         _cmdPort._sw->begin(speed);
                     }
@@ -535,7 +593,8 @@ INT16 gsmDevice::init(INT16 rxPin, INT16 txPin, INT32 speed,
                         _cmdPort._sw->begin( GSMDEVICE_DEF_CMD_SPEED );
                     }
 
-                    if( timeout != NO_TIMEOUT )
+                    // not the default?
+                    if( timeout != GSMDEVICE_NO_TIMEOUT )
                     {
                         _cmdPort._sw->setTimeout(timeout);
                     }
@@ -571,25 +630,29 @@ INT16 gsmDevice::init(INT16 serialNo, INT32 speed, INT32 timeout)
 {
     INT16 retVal;
 
-    if( serialNo <= NO_SERIAL )
+    // valid # of UART?
+    if( serialNo <= GSMDEVICE_NO_SERIAL )
     {
         retVal = GSMDEVICE_E_P_SERIAL;
     }
     else
     {
-        if( speed < NO_SPEED )
+        // speed default or more?
+        if( speed < GSMDEVICE_NO_SPEED )
         {
             retVal = GSMDEVICE_E_P_SPEED;
         }
         else
         {
-            if( timeout < NO_TIMEOUT )
+            // timeout non negative?
+            if( timeout < GSMDEVICE_NO_TIMEOUT )
             {
                 retVal = GSMDEVICE_E_P_TMOUT;
             }
             else
             {
-                if( serialNo == NO_SERIAL )
+                // only UART # 0 (=default) supported yet
+                if( serialNo == GSMDEVICE_NO_SERIAL )
                 {
                     _cmdPort._hw    = &Serial;
                     _cmdPortType    = hwSerial;
@@ -598,17 +661,19 @@ INT16 gsmDevice::init(INT16 serialNo, INT32 speed, INT32 timeout)
                     _cmdPortTimeout = timeout;
                     _devStatus      = initialized;
                
-
-                    if( speed != NO_SPEED )
+                    // set to given speed
+                    if( speed != GSMDEVICE_NO_SPEED )
                     {
                         _cmdPort._hw->begin(speed);
                     }
                     else
-                    {
+                    {  
+                        // or to the default
                         _cmdPort._hw->begin( GSMDEVICE_DEF_CMD_SPEED );
                     }
 
-                    if( timeout != NO_TIMEOUT )
+                    // set to given timeout
+                    if( timeout != GSMDEVICE_NO_TIMEOUT )
                     {
                         _cmdPort._hw->setTimeout(timeout);
                     }
@@ -645,13 +710,13 @@ INT16 gsmDevice::init(STREAM *output, INT32 timeout)
 {
     INT16 retVal;
 
-    if( output == NULL_STREAM )
+    if( output == GSMDEVICE_NULL_STREAM )
     {
         retVal = GSMDEVICE_E_P_STREAM;
     }
     else
     {
-        if( timeout < NO_TIMEOUT )
+        if( timeout < GSMDEVICE_NO_TIMEOUT )
         {
             retVal = GSMDEVICE_E_P_TMOUT;
         }
@@ -663,7 +728,7 @@ INT16 gsmDevice::init(STREAM *output, INT32 timeout)
             _cmdPortTimeout = timeout;
             _devStatus      = initialized;
 
-            if( timeout != NO_TIMEOUT )
+            if( timeout != GSMDEVICE_NO_TIMEOUT )
             {
                 _cmdPort._str->setTimeout(timeout);
             }
@@ -694,13 +759,13 @@ INT16 gsmDevice::init(SW_SERIAL *output, INT32 timeout)
 {
     INT16 retVal;
 
-    if( output == NULL_STREAM )
+    if( output == GSMDEVICE_NULL_STREAM )
     {
         retVal = GSMDEVICE_E_P_STREAM;
     }
     else
     {
-        if( timeout < NO_TIMEOUT )
+        if( timeout < GSMDEVICE_NO_TIMEOUT )
         {
             retVal = GSMDEVICE_E_P_TMOUT;
         }
@@ -712,7 +777,7 @@ INT16 gsmDevice::init(SW_SERIAL *output, INT32 timeout)
             _cmdPortTimeout = timeout;
             _devStatus      = initialized;
 
-            if( timeout != NO_TIMEOUT )
+            if( timeout != GSMDEVICE_NO_TIMEOUT )
             {
                 _cmdPort._sw->setTimeout(timeout);
             }
@@ -744,13 +809,13 @@ INT16 gsmDevice::init(HW_SERIAL *output, INT32 timeout)
 {
     INT16 retVal;
 
-    if( output == NULL_STREAM )
+    if( output == GSMDEVICE_NULL_STREAM )
     {
         retVal = GSMDEVICE_E_P_STREAM;
     }
     else
     {
-        if( timeout < NO_TIMEOUT )
+        if( timeout < GSMDEVICE_NO_TIMEOUT )
         {
             retVal = GSMDEVICE_E_P_TMOUT;
         }
@@ -762,7 +827,7 @@ INT16 gsmDevice::init(HW_SERIAL *output, INT32 timeout)
             _cmdPortTimeout = timeout;
             _devStatus      = initialized;
 
-            if( timeout != NO_TIMEOUT )
+            if( timeout != GSMDEVICE_NO_TIMEOUT )
             {
                 _cmdPort._hw->setTimeout(timeout);
             }
@@ -778,7 +843,7 @@ INT16 gsmDevice::init(HW_SERIAL *output, INT32 timeout)
 
 // ************************************************************************
 // Initialize a gsmDevice instance 
-//   - this is used for further use
+//   - this is used for linux devices only at this time
 //
 // Expected arguments:
 // - DEVICENAME deviceName
@@ -797,19 +862,19 @@ INT16 gsmDevice::init(DEVICENAME deviceName, INT32 speed, INT32 timeout)
 {
     INT16 retVal;
 
-    if( deviceName.length() == 0 ) // <= NO_SERIAL )
+    if( deviceName.length() == 0 ) 
     {
         retVal = GSMDEVICE_E_P_SERIAL;
     }
     else
     {
-        if( speed < NO_SPEED )
+        if( speed < GSMDEVICE_NO_SPEED )
         {
             retVal = GSMDEVICE_E_P_SPEED;
         }
         else
         {
-            if( timeout < NO_TIMEOUT )
+            if( timeout < GSMDEVICE_NO_TIMEOUT )
             {
                 retVal = GSMDEVICE_E_P_TMOUT;
             }
@@ -823,7 +888,7 @@ INT16 gsmDevice::init(DEVICENAME deviceName, INT32 speed, INT32 timeout)
                 }
                 else
                 {
-                    if( speed != NO_SPEED )
+                    if( speed != GSMDEVICE_NO_SPEED )
                     {
                         retVal = setupSerial(_cmdPort._dev, speed);
                     }
@@ -866,11 +931,13 @@ INT16 gsmDevice::init(DEVICENAME deviceName, INT32 speed, INT32 timeout)
 gsmDevice::~gsmDevice() 
 {
 #ifndef linux
+    // delete stream instance we created
     if( _ownStream )
     {
         delete _cmdPort._sw;
     }
 #else
+    // on linux close device
     if( _cmdPort._dev > 0 )
     {
         close( _cmdPort._dev );
@@ -927,7 +994,13 @@ INT16 gsmDevice::inputFlush()
             case streamType:
 #else
             case linuxDevice:
-                retVal = GSMDEVICE_E_SUPPORTED;
+                if( _cmdPort._dev != 0 )
+                {
+                    char tmpBuf[128];
+                    while( read(_cmdPort._dev, tmpBuf, sizeof(tmpBuf)) > 0 )
+			;
+                }
+                retVal = GSMDEVICE_SUCCESS;
                 break;
 #endif // linux
 
@@ -965,8 +1038,8 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
                                STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
 
     if( _cmdPortType  == nodev ||
@@ -987,7 +1060,7 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
                         *pFmt == cmdResultText    )
                     {
                         command += STRING(*pFmt);
-                        command += CRLF_STRING;
+                        command += GSMDEVICE_CRLF_STRING;
                         retVal = GSMDEVICE_SUCCESS;
                     }
                     else
@@ -997,7 +1070,7 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
                 }
                 else
                 {
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                 }
                 break;
@@ -1010,16 +1083,16 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
 
         if( retVal == GSMDEVICE_SUCCESS )
         {
-            result = EMPTY_STRING;
+            result = GSMDEVICE_EMPTY_STRING;
 
             switch( _cmdPortType )
             {
                 case swSerial:
                 case hwSerial:
                 case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -1066,8 +1139,8 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData,
 {
     INT16 retVal;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
     INT16 dataIndex;
 
@@ -1085,13 +1158,13 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData,
                 case cmd_test:
                     command = GSMDEVICE_ATTENTION;
                     command += SMS_MSG_FORMAT_CMD_TEST;
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_read:
                     command = GSMDEVICE_ATTENTION;
                     command += SMS_MSG_FORMAT_CMD_READ;
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_set:
@@ -1101,7 +1174,7 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData,
                         command = GSMDEVICE_ATTENTION;
                         command += SMS_MSG_FORMAT_CMD_SET;
                         command += STRING(pData->current);
-                        command += CRLF_STRING;
+                        command += GSMDEVICE_CRLF_STRING;
                         retVal = GSMDEVICE_SUCCESS;
                     }
                     else
@@ -1118,17 +1191,17 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData,
 
             if( retVal == GSMDEVICE_SUCCESS )
             {
-                result = EMPTY_STRING;
+                result = GSMDEVICE_EMPTY_STRING;
 
                 switch( _cmdPortType )
                 {
                     case swSerial:
                     case hwSerial:
                     case linuxDevice:
-                        if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                        if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                         {
                             memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
-                            retVal = readResponse( result, false, NO_TIMEOUT );
+                            retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                             if( retVal == GSMDEVICE_SUCCESS )
                             {
@@ -1188,8 +1261,8 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
 
     if( _cmdPortType  == nodev ||
@@ -1206,13 +1279,13 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData,
                 case cmd_test:
                     command = GSMDEVICE_ATTENTION;
                     command += OPERATOR_SELECT_CMD_TEST;
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_read:
                     command = GSMDEVICE_ATTENTION;
                     command += OPERATOR_SELECT_CMD_READ;
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_set:
@@ -1226,7 +1299,7 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData,
                         command = GSMDEVICE_ATTENTION;
                         command += OPERATOR_SELECT_CMD_SET;
                         command += STRING(*pData);
-                        command += CRLF_STRING;
+                        command += GSMDEVICE_CRLF_STRING;
                         retVal = GSMDEVICE_SUCCESS;
                     }
                     else
@@ -1243,14 +1316,14 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData,
 
             if( retVal == GSMDEVICE_SUCCESS )
             {
-                result = EMPTY_STRING;
+                result = GSMDEVICE_EMPTY_STRING;
 
                 switch( _cmdPortType )
                 {
                     case swSerial:
                     case hwSerial:
                     case linuxDevice:
-                        if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                        if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                         {
                             retVal = readResponse( result, false, 120000 );
 
@@ -1303,8 +1376,8 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
 
     if( _cmdPortType  == nodev ||
@@ -1326,7 +1399,7 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
 
                     {
                         command += STRING(*pFmt);
-                        command += CRLF_STRING;
+                        command += GSMDEVICE_CRLF_STRING;
                         retVal = GSMDEVICE_SUCCESS;
                     }
                     else
@@ -1336,7 +1409,7 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
                 }
                 else
                 {
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                 }
                 break;
@@ -1349,16 +1422,16 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
 
         if( retVal == GSMDEVICE_SUCCESS )
         {
-            result = EMPTY_STRING;
+            result = GSMDEVICE_EMPTY_STRING;
 
             switch( _cmdPortType )
             {
                 case swSerial:
                 case hwSerial:
                 case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -1404,8 +1477,8 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
@@ -1424,13 +1497,13 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData,
                 case cmd_test:
                     command = GSMDEVICE_ATTENTION;
                     command += NETWORK_REGISTRATION_CMD_TEST;
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_read:
                     command = GSMDEVICE_ATTENTION;
                     command += NETWORK_REGISTRATION_CMD_READ;
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_set:
@@ -1442,7 +1515,7 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData,
                         command = GSMDEVICE_ATTENTION;
                         command += NETWORK_REGISTRATION_CMD_SET;
                         command += STRING(pData->mode);
-                        command += CRLF_STRING;
+                        command += GSMDEVICE_CRLF_STRING;
                         retVal = GSMDEVICE_SUCCESS;
                     }
                     else
@@ -1458,17 +1531,17 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData,
 
             if( retVal == GSMDEVICE_SUCCESS )
             {
-                result = EMPTY_STRING;
+                result = GSMDEVICE_EMPTY_STRING;
 
                 switch( _cmdPortType )
                 {
                     case swSerial:
                     case hwSerial:
                     case linuxDevice:
-                        if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                        if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                         {
                             memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
-                            retVal = readResponse( result, false, NO_TIMEOUT );
+                            retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                             if( retVal == GSMDEVICE_SUCCESS )
                             {
@@ -1527,8 +1600,8 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
@@ -1545,13 +1618,13 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
             case cmd_test:
                 command = GSMDEVICE_ATTENTION;
                 command += SIGNAL_QUALITY_CMD_TEST;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_execute:
                 command = GSMDEVICE_ATTENTION;
                 command += SIGNAL_QUALITY_CMD_EXEC;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             default:
@@ -1562,17 +1635,17 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
 
         if( retVal == GSMDEVICE_SUCCESS )
         {
-            result = EMPTY_STRING;
+            result = GSMDEVICE_EMPTY_STRING;
 
             switch( _cmdPortType )
             {
                 case swSerial:
                 case hwSerial:
                 case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
                         memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -1626,8 +1699,8 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, _dataCPOL *pData
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
@@ -1644,13 +1717,13 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, _dataCPOL *pData
             case cmd_test:
                 command = GSMDEVICE_ATTENTION;
                 command += PREF_OPERATOR_LIST_CMD_TEST;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_read:
                 command = GSMDEVICE_ATTENTION;
                 command += PREF_OPERATOR_LIST_CMD_READ;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_set:
@@ -1691,7 +1764,7 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, _dataCPOL *pData
                         }
                     }
 
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                 }
                 else
@@ -1707,7 +1780,7 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, _dataCPOL *pData
 
         if( retVal == GSMDEVICE_SUCCESS )
         {
-            result = EMPTY_STRING;
+            result = GSMDEVICE_EMPTY_STRING;
 
             switch( _cmdPortType )
             {
@@ -1733,10 +1806,10 @@ fprintf(stderr, "COMMAND: %s\n", command.c_str());
 }
 else
 {
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
                         memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -1791,8 +1864,8 @@ INT16 gsmDevice::requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI *pData,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
 
     if( _cmdPortType  == nodev ||
@@ -1807,13 +1880,13 @@ INT16 gsmDevice::requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI *pData,
             case cmd_test:
                 command = GSMDEVICE_ATTENTION;
                 command += REQUEST_IMSI_CMD_TEST;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_set:
                 command = GSMDEVICE_ATTENTION;
                 command += REQUEST_IMSI_CMD_SET;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             default:
@@ -1824,16 +1897,16 @@ INT16 gsmDevice::requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI *pData,
 
         if( retVal == GSMDEVICE_SUCCESS )
         {
-            result = EMPTY_STRING;
+            result = GSMDEVICE_EMPTY_STRING;
 
             switch( _cmdPortType )
             {
                 case swSerial:
                 case hwSerial:
                 case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -1884,8 +1957,8 @@ INT16 gsmDevice::readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR *pData,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
     INT16 dataIndex;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
@@ -1906,7 +1979,7 @@ INT16 gsmDevice::readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR *pData,
                 case cmd_test:
                     command = GSMDEVICE_ATTENTION;
                     command += READ_WRITE_IMEI_CMD_TEST;
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_set:
@@ -1915,7 +1988,7 @@ INT16 gsmDevice::readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR *pData,
                     command += STRING(pData->mode);
                     command += STRING(",");
                     command += STRING(pData->format);
-                    command += CRLF_STRING;
+                    command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 default:
@@ -1926,17 +1999,17 @@ INT16 gsmDevice::readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR *pData,
 
             if( retVal == GSMDEVICE_SUCCESS )
             {
-                result = EMPTY_STRING;
+                result = GSMDEVICE_EMPTY_STRING;
 
                 switch( _cmdPortType )
                 {
                     case swSerial:
                     case hwSerial:
                     case linuxDevice:
-                        if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                        if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                         {
                             memset( _pattern, '\0', GSMDEVICE_RESP_PATTERN_LEN );
-                            retVal = readResponse( result, false, NO_TIMEOUT );
+                            retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                             if( retVal == GSMDEVICE_SUCCESS )
                             {
@@ -1995,8 +2068,8 @@ INT16 gsmDevice::requestRevisionId( gsmCommandMode cmdMode, void *pIgnored,
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
 
     if( _cmdPortType  == nodev ||
@@ -2011,13 +2084,13 @@ INT16 gsmDevice::requestRevisionId( gsmCommandMode cmdMode, void *pIgnored,
             case cmd_test:
                 command = GSMDEVICE_ATTENTION;
                 command += REQUEST_REV_ID_CMD_TEST;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             case cmd_set:
                 command = GSMDEVICE_ATTENTION;
                 command += REQUEST_REV_ID_CMD_SET;
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             default:
@@ -2028,16 +2101,16 @@ INT16 gsmDevice::requestRevisionId( gsmCommandMode cmdMode, void *pIgnored,
 
         if( retVal == GSMDEVICE_SUCCESS )
         {
-            result = EMPTY_STRING;
+            result = GSMDEVICE_EMPTY_STRING;
 
             switch( _cmdPortType )
             {
                 case swSerial:
                 case hwSerial:
                 case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -2086,8 +2159,8 @@ INT16 gsmDevice::requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValu
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
-    STRING command = EMPTY_STRING;
-    STRING dummy = EMPTY_STRING;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
 
     if( _cmdPortType  == nodev ||
@@ -2103,7 +2176,7 @@ INT16 gsmDevice::requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValu
                 command = GSMDEVICE_ATTENTION;
                 command += REQUEST_MANSPEC_INFO_CMD_SET;
                 command += STRING(infoValue);
-                command += CRLF_STRING;
+                command += GSMDEVICE_CRLF_STRING;
                 retVal = GSMDEVICE_SUCCESS;
                 break;
             default:
@@ -2114,16 +2187,16 @@ INT16 gsmDevice::requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValu
 
         if( retVal == GSMDEVICE_SUCCESS )
         {
-            result = EMPTY_STRING;
+            result = GSMDEVICE_EMPTY_STRING;
 
             switch( _cmdPortType )
             {
                 case swSerial:
                 case hwSerial:
                 case linuxDevice:
-                    if((retVal=sendCommand(command, true, NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                    if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                     {
-                        retVal = readResponse( result, false, NO_TIMEOUT );
+                        retVal = readResponse( result, false, GSMDEVICE_NO_TIMEOUT );
 
                         if( retVal == GSMDEVICE_SUCCESS )
                         {
@@ -2317,24 +2390,24 @@ INT16 gsmDevice::syncWithResponse( STRING cmd, STRING expect )
 
         do
         {
-            if( (triesDone % GSMDEV_SYNC_MAX_CMD) == 0 )
+            if( (triesDone % GSMDEVICE_SYNC_MAX_CMD) == 0 )
             {
-                sendCommand( cmd, false, NO_TIMEOUT );
+                sendCommand( cmd, false, GSMDEVICE_NO_TIMEOUT );
             }
 
-            readResponse( response, false, NO_TIMEOUT );
+            readResponse( response, false, GSMDEVICE_NO_TIMEOUT );
 //            response.trim();
             if(response.indexOf(expect) >= 0)
             {
                 devReady = true;
             }
 
-            delay(GSMDEV_SYNC_DELAY);
+            delay(GSMDEVICE_SYNC_DELAY);
 
 // Serial.print("RESPONSE: ");
 // Serial.println(response);
 
-        } while( !devReady && triesDone++ < GSMDEV_SYNC_MAX_TOTAL );
+        } while( !devReady && triesDone++ < GSMDEVICE_SYNC_MAX_TOTAL );
 
 // Serial.print("index of: ");
 // Serial.print(expect);
@@ -2487,7 +2560,7 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter, INT32 timeout 
             case swSerial:
                 tmOut = false;
                 startTimeout = 0;
-                if( timeout == NO_TIMEOUT )
+                if( timeout == GSMDEVICE_NO_TIMEOUT )
                 {
                     timeout = 200;
                 }
@@ -2512,7 +2585,7 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter, INT32 timeout 
                             }
                         }
 
-                        delay(GSMDEV_READ_DELAY);
+                        delay(GSMDEVICE_READ_DELAY);
                     }
                 } while(!tmOut);
 
@@ -2533,7 +2606,7 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter, INT32 timeout 
             case hwSerial:
                 tmOut = false;
                 startTimeout = 0;
-                if( timeout == NO_TIMEOUT )
+                if( timeout == GSMDEVICE_NO_TIMEOUT )
                 {
                     timeout = 200;
                 }
@@ -2558,7 +2631,7 @@ INT16 gsmDevice::readResponse( STRING &response, BOOL flushAfter, INT32 timeout 
                             }
                         }
 
-                        delay(GSMDEV_READ_DELAY);
+                        delay(GSMDEVICE_READ_DELAY);
                     }
                 } while(!tmOut);
 
@@ -4075,12 +4148,637 @@ INT16 gsmDevice::parseCPOL( gsmCommandMode cmdMode, STRING response, char _patte
     return( _lastError = retVal );
 }
 
+// ////////////////////////////////////////////////////////////////////////
+//
+// listMan
+//   - manage response of type list store in a STRING object
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list
+// - _listAction action         operation to perform
+// - char *_pattern             pattern for find operations
+// - int _patLen                length of pattern
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_PATTERN    find without pattern
+// - GSMDEVICE_LIST_E_SUPPORTED  list or operation not supported
+// - GSMDEVICE_LIST_E_ACTION     invali operation specified
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listMan( struct _listInString *list, _listAction action, char *_pattern, int _patLen, STRING &result, void *pData )
+{
+    INT16 retVal;
+
+    if( list->_type != listTypeCPOL && list->_type != listTypeOTHER )
+    {
+        retVal = GSMDEVICE_LIST_E_TYPE;
+    }
+    else
+    {
+        if( list == NULL || list->_list == NULL )
+        {
+            retVal = GSMDEVICE_LIST_E_NULL;
+        }
+        else
+        {
+            switch( action )
+            {
+                case firstItem:
+                    retVal = listManFirst( list, result, pData );
+                    break;
+                case nextItem:
+                    retVal = listManNext( list, result, pData );
+                    break;
+                case prevItem:
+                    retVal = listManPrev( list, result, pData );
+                    break;
+                case lastItem:
+                    retVal = listManLast( list, result, pData );
+                    break;
+                case currItem:
+                    retVal = GSMDEVICE_LIST_E_SUPPORTED;
+                    break;
+                case findItem:
+                case findNextItem:
+                case findPrevItem:
+                case findLastItem:
+                    if( _pattern == NULL || _patLen <= 0 )
+                    {
+                        retVal = GSMDEVICE_LIST_E_PATTERN;
+                    }
+                    else
+                    {
+                        retVal = GSMDEVICE_LIST_E_SUPPORTED;
+                    }
+                    break;
+                default:
+// fprintf(stderr, "listMan: action is %d, default\n", action);
+                    retVal = GSMDEVICE_LIST_E_ACTION;
+                    break;
+            }
+        }
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManInitList
+//   - initialize a list
+//
+// Expected arguments:
+// - _listType type             pointer to list object to initialize
+// - struct _listInString *list pointer to list object
+// - STRING srcList             STRING that contais whole list
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManInitList( _listType type, struct _listInString *list, STRING srcList )
+{
+    INT16 retVal;
+
+    if( list != NULL )
+    {
+        if( (list->_list = srcList.c_str()) != NULL )
+        {
+            if( type != listTypeCPOL && type != listTypeOTHER )
+            {
+                retVal = GSMDEVICE_LIST_E_TYPE;
+            }
+            else
+            {
+                list->_type = type;
+                list->_current = 0;
+                list->_iCurrent = 0;
+                retVal = GSMDEVICE_SUCCESS;
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_LIST_E_NULL;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManFirst
+//   - return first item in list
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManFirst( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+
+    if( list != NULL && list->_list != NULL )
+    {
+        switch( list->_type )
+        {
+            case listTypeCPOL:
+                retVal = listManCPOLFirst( list, result, pData );
+                break;
+            default:
+                retVal = GSMDEVICE_LIST_E_TYPE;
+                break;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManNext
+//   - return next item in list
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManNext( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+
+    if( list != NULL && list->_list != NULL )
+    {
+        switch( list->_type )
+        {
+            case listTypeCPOL:
+                retVal = listManCPOLNext( list, result, pData );
+                break;
+            default:
+                retVal = GSMDEVICE_LIST_E_TYPE;
+                break;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManPrev
+//   - return previous item in list
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManPrev( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+
+    if( list != NULL && list->_list != NULL )
+    {
+        switch( list->_type )
+        {
+            case listTypeCPOL:
+                retVal = listManCPOLPrev( list, result, pData );
+                break;
+            default:
+                retVal = GSMDEVICE_LIST_E_TYPE;
+                break;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManLast
+//   - return last item in list
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManLast( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+
+    if( list != NULL && list->_list != NULL )
+    {
+        switch( list->_type )
+        {
+            case listTypeCPOL:
+                retVal = listManCPOLLast( list, result, pData );
+                break;
+            default:
+                retVal = GSMDEVICE_LIST_E_TYPE;
+                break;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManGetLine
+//   - read string from current pos to CRLF
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManGetLine( struct _listInString *list )
+{
+    INT16 retVal;
+
+    if( list != NULL && list->_list != NULL )
+    {
+// fprintf(stderr, "listManGetLine: list->_iCurrent before loop %d\n", list->_iCurrent);
+// fprintf(stderr, "                length of data is %d\n", strlen(list->_list));
+        if( (list->_iCurrent < strlen(list->_list)) && (list->_iCurrent >= 0) )
+        {
+            int maxLen = strlen(list->_list);
+            bool done = false;
+            int x = 0;
+            memset( list->_tmpBuffer, '\0', GSMDEVICE_LIST_BUFFER_LEN+1 );
+
+            for( done = false, x = 0; !done && list->_iCurrent < maxLen; list->_iCurrent++ )
+            {
+                if( list->_list[list->_iCurrent] == '\r' ||
+                    list->_list[list->_iCurrent] == '\n' )
+                {
+                    done = true;
+                }
+                else
+                {
+                    if( x < GSMDEVICE_LIST_BUFFER_LEN )
+                    {
+                        list->_tmpBuffer[x++] = list->_list[list->_iCurrent];
+                    }
+                    else
+                    {
+                        done = true;
+                    }
+                }
+            }
+
+            while( list->_iCurrent < maxLen && ( list->_list[list->_iCurrent] == '\r' ||
+                   list->_list[list->_iCurrent] == '\n' ) )
+            {
+                list->_iCurrent++;;
+            }
+
+            if(strlen(list->_tmpBuffer) > 0 )
+            {
+                list->_current++;
+                retVal = GSMDEVICE_SUCCESS;
+            }
+            else
+            {
+                retVal = GSMDEVICE_LIST_E_NO_MORE;
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_LIST_E_NO_MORE;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManCPOLFirst
+//   - return first item in list of type listTypeCPOL
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManCPOLFirst( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+    struct _dataCPOL *resultData;
+    char tmpBuffer[64];
+
+    if( list != NULL && list->_list != NULL )
+    {
+
+        if( list->_type != listTypeCPOL )
+        {
+            retVal = GSMDEVICE_LIST_E_TYPE;
+        }
+        else
+        {
+            // set to 0 -> start at the beginning
+            list->_current = 0;
+            list->_iCurrent = 0;
+
+            if( (retVal = listManGetLine( list )) == GSMDEVICE_SUCCESS )
+            {
+                result = list->_tmpBuffer;
+                if( (resultData = ( struct _dataCPOL*) pData) != NULL )
+                {
+                    memset( tmpBuffer, '\0', sizeof( tmpBuffer) );
+                    if( sscanf(list->_tmpBuffer, readResponseFmtCPOL, &resultData->index,
+                        (int*) &resultData->format, tmpBuffer) >= 2 )
+                    {
+                        resultData->oper = tmpBuffer;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManCPOLNext
+//   - return next item in list of type listTypeCPOL
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManCPOLNext( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+    struct _dataCPOL *resultData;
+    char tmpBuffer[64];
+
+    if( list != NULL && list->_list != NULL )
+    {
+        if( list->_type != listTypeCPOL )
+        {
+            retVal = GSMDEVICE_LIST_E_TYPE;
+        }
+        else
+        {
+            if( (retVal = listManGetLine( list )) == GSMDEVICE_SUCCESS )
+            {
+                result = list->_tmpBuffer;
+                if( (resultData = ( struct _dataCPOL*) pData) != NULL )
+                {
+                    memset( tmpBuffer, '\0', sizeof( tmpBuffer) );
+                    if( sscanf(list->_tmpBuffer, readResponseFmtCPOL, &resultData->index,
+                        (int*) &resultData->format, tmpBuffer) >= 2 )
+                    {
+                        resultData->oper = tmpBuffer;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManCPOLPrev
+//   - return previous item in list of type listTypeCPOL
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManCPOLPrev( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+    struct _dataCPOL *resultData;
+    char tmpBuffer[64];
+
+    if( list != NULL && list->_list != NULL )
+    {
+        if( list->_type != listTypeCPOL )
+        {
+            retVal = GSMDEVICE_LIST_E_TYPE;
+        }
+        else
+        {
+            int currentItem = list->_current;
+
+            if(  list->_current > 1 )
+            {
+                if( (retVal = listManCPOLFirst( list, result, pData )) == GSMDEVICE_SUCCESS )
+                {
+                    while( list->_current < currentItem - 1 &&
+                           (retVal = listManCPOLNext( list, result, pData )) == GSMDEVICE_SUCCESS )
+                    {
+                        ;
+                    }
+
+                    result = list->_tmpBuffer;
+                    if( (resultData = ( struct _dataCPOL*) pData) != NULL )
+                    {
+                        memset( tmpBuffer, '\0', sizeof( tmpBuffer) );
+                        if( sscanf(list->_tmpBuffer, readResponseFmtCPOL, &resultData->index,
+                            (int*) &resultData->format, tmpBuffer) >= 2 )
+                        {
+                            resultData->oper = tmpBuffer;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                retVal = GSMDEVICE_LIST_E_NO_MORE;
+            }
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
+
+// ////////////////////////////////////////////////////////////////////////
+//
+// listManCPOLLast
+//   - return last item in list of type listTypeCPOL
+//
+// Expected arguments:
+// - struct _listInString *list pointer to list object
+// - STRING &result             reference to string to hold item
+// - void *pData                pointer to result structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_LIST_E_NULL       list is NULL
+// - GSMDEVICE_LIST_E_TYPE       invalid type of list
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::listManCPOLLast( struct _listInString *list, STRING &result, void *pData )
+{
+    INT16 retVal;
+    struct _dataCPOL *resultData;
+    char tmpBuffer[64];
+
+    if( list != NULL && list->_list != NULL )
+    {
+        if( list->_type != listTypeCPOL )
+        {
+            retVal = GSMDEVICE_LIST_E_TYPE;
+        }
+        else
+        {
+            while( (retVal = listManCPOLNext( list, result, pData )) == GSMDEVICE_SUCCESS )
+            {
+                ;
+            }
+
+            result = list->_tmpBuffer;
+            if( (resultData = ( struct _dataCPOL*) pData) != NULL )
+            {
+                memset( tmpBuffer, '\0', sizeof( tmpBuffer) );
+                if( sscanf(list->_tmpBuffer, readResponseFmtCPOL, &resultData->index,
+                    (int*) &resultData->format, tmpBuffer) >= 2 )
+                {
+                    resultData->oper = tmpBuffer;
+                }
+            }
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_LIST_E_NULL;
+    }
+
+    return( _lastError = retVal );
+}
 
 
 
 
+// struct _dataCPOL {
+//     // cmd_test param
+//     int fromIndex;
+//     int toIndex;
+//     prefOperList fromFormat;
+//     prefOperList toFormat;
+//     // cmd_set param
+//     int index;
+//     prefOperList format;
+//     STRING oper;
+//     // cmd_read param
+//     STRING list;
 
 
+
+// readResponseFmtCPOL
 
 
 
@@ -4193,7 +4891,6 @@ INT16 gsmDevice::parseCSQ( gsmCommandMode cmdMode, STRING response, char _patter
 
     return( _lastError = retVal );
 }
-
 
 
 // 
