@@ -2,7 +2,7 @@
 
 ### A class for Arduino and Linux to handle a gsm module like a A6 gsm breakout board.
 
-### Warning! This is an absolutely work in progress project. For most stable version use pre0.1 branch/pre-release
+### Warning! This is an absolutely work in progress project. For most stable version use pre0.2 branch/pre-release
 
 
 ----------
@@ -184,13 +184,13 @@ Exception: if an error occurred, a specific error code is returned. See each com
 ----------
 
 **Select SMS message format (AT+CMGF)**
-***INT16 smsMsgFormat( gsmCommandMode cmdMode, smsMessageFormat \*pFmt, STRING &result , void \*pParam = NULL)***
+***INT16 smsMsgFormat( gsmCommandMode cmdMode, struct _dataCMGF \*pData, STRING &result , void \*pParam = NULL)***
 
 Set format of SMS messages to PDU or text format.
 
 **Note:**PDU format is not really readable by humans.*
 Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
-Expects: a pointer to a vaiable of type smsMessageFormat. In case of *cmd_set* this variable must contain either *smsPDUMode* or *smsTXTMode*. All other values will cause an error. After a call with gsmCommandMode *cmd_get* the variable will contain the current SMS message format, either *smsPDUMode* or *smsTXTMode*.
+Expects: a pointer to a vaiable of type struct _dataCMGF. In case of *cmd_set* this variable must contain either *smsPDUMode* or *smsTXTMode*. All other values will cause an error. After a call with gsmCommandMode *cmd_get* the variable will contain the current SMS message format, either *smsPDUMode* or *smsTXTMode*.
 On error it returns:
 
  - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
@@ -214,11 +214,11 @@ On error it returns:
 ----------
 
 **Operator selects (AT+COPS):**
-***INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode \*pFmt, STRING &result, void \*pParam = NULL)***
+***INT16 operatorSelects( gsmCommandMode cmdMode, struct _dataCOPS \*pFmt, STRING &result, void \*pParam = NULL)***
 
 Selects mode to connect to available operators.
 Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
-Expects: a pointer to a vaiable of type opSelectMode. In case of *cmd_set* this variable must contain either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*. All other values will cause an error. After a call with gsmCommandMode *cmd_get* the variable will contain the current operator mode, either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*.
+Expects: a pointer to a vaiable of type struct _dataCOPS. In case of *cmd_set* this variable must contain either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*. All other values will cause an error. After a call with gsmCommandMode *cmd_get* the variable will contain the current operator mode, either *opSelectAuto*, *opSelectManual*, *opSelectDeregister*, *opSelectFormatOnly* or *opSelectManualAuto*.
 On error it returns:
 
  - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
@@ -246,11 +246,11 @@ On error it returns:
 
 ----------
 **Network registration (AT+CREG)**
-***INT16 networkRegistration( gsmCommandMode cmdMode, networkRegistrationMode \*pFmt, STRING &result, void \*pParam = NULL)***
+***INT16 networkRegistration( gsmCommandMode cmdMode, struct _dataCREG \*pData, STRING &result, void \*pParam = NULL)***
 
 Query the current network register status.
 Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
-Expects: a pointer to a vaiable of type networkRegistrationMode. In case of *cmd_set* this variable must contain either *disableNetwRegUnsol*, *enableNetwRegUnsol* or *enableNetwRegUnsolLoc*. All other values will cause an error. After a call with gsmCommandMode *cmd_read* the variable will contain the current registration mode, either *disableNetwRegUnsol*, *enableNetwRegUnsol* or *enableNetwRegUnsolLoc*.
+Expects: a pointer to a vaiable of type struct _dataCREG. In case of *cmd_set* this variable must contain either *disableNetwRegUnsol*, *enableNetwRegUnsol* or *enableNetwRegUnsolLoc*. All other values will cause an error. After a call with gsmCommandMode *cmd_read* the variable will contain the current registration mode, either *disableNetwRegUnsol*, *enableNetwRegUnsol* or *enableNetwRegUnsolLoc*.
 On error it returns:
 
  - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
@@ -260,11 +260,11 @@ On error it returns:
 ----------
 
 **Signal quality (AT+CSQ)**
-***INT16 signalQuality( gsmCommandMode cmdMode, struct signalQuality \*pData, STRING &result, void \*pParam = NULL)***
+***INT16 signalQuality( gsmCommandMode cmdMode, struct _dataCSQ \*pData, STRING &result, void \*pParam = NULL)***
 
 Query the quality of the signal.
 Supports: gsmCommandMode *cmd_test* and *cmd_execute*.
-Expects: a pointer to a vaiable of struct signalQuality. In case of *cmd_execute* this structure will hold the current values on successful execution.
+Expects: a pointer to a vaiable of struct _dataCSQ. In case of *cmd_execute* this structure will hold the current values on successful execution.
 In case of *cmd_test* this parameter is ommitted and may be NULL.
 On error it returns:
 
@@ -275,11 +275,11 @@ On error it returns:
 ----------
 
 **Preferred operator list (AT+CPOL)**
-***INT16 preferredOperatorList( gsmCommandMode cmdMode, prefOperList \*pMode, STRING &result, void \*pParam = NULL)***
+***INT16 preferredOperatorList( gsmCommandMode cmdMode, struct _dataCPOL \*pMode, STRING &result, void \*pParam = NULL)***
 
 Edit and query the list with preferred operators.
 Supports: gsmCommandMode *cmd_test*, *cmd_set* and *cmd_read*.
-Expects: a pointer to a vaiable of type prefOperList. In case of *cmd_set* this variable must contain either *prefOperLongAlphaMode*, *prefOperShortAlphaMode* or *prefOperNumericMode*. All other values will cause an error. After a call with gsmCommandMode *cmd_read* the STRING result will contain the current list of preferred operators.
+Expects: a pointer to a vaiable of type struct _dataCPOL. In case of *cmd_set* this variable must contain either *prefOperLongAlphaMode*, *prefOperShortAlphaMode* or *prefOperNumericMode*. All other values will cause an error. After a call with gsmCommandMode *cmd_read* the STRING result will contain the current list of preferred operators.
 On error it returns:
 
  - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
@@ -291,11 +291,11 @@ On error it returns:
 ----------
 
 **Request international mobile subscriber identity (AT+CIMI)**
-***INT16 requestIMSI( gsmCommandMode cmdMode, void \*pIgnored, STRING &result, void \*pParam = NULL)***
+***INT16 requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI \*pData, STRING &result, void \*pParam = NULL)***
 
 Enable/disable echo of commands sent.
 Supports: gsmCommandMode *cmd_test* and *cmd_set*.
-The void pointer pIgnored is omitted an may be NULL. After a call with gsmCommandMode *cmd_set* the STRING result will contain the current IMSI.
+Expects: a pointer to struct _dataIMSI to hold results. After a call with gsmCommandMode *cmd_set* the STRING result will contain the current IMSI, too.
 On error it returns:
 
  - GSMDEVICE_E_INIT (gsmDevice instance is not initialized)
@@ -307,11 +307,11 @@ On error it returns:
 ----------
 
 **Read and write IMEI (AT+EGMR)**
-***INT16 readWriteIMEI( gsmCommandMode cmdMode, struct rwIMEIData \*pData, STRING &result, void \*pParam = NULL)***
+***INT16 readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR \*pData, STRING &result, void \*pParam = NULL)***
 
 Edit and query the international mobile equipment identity.
 Supports: gsmCommandMode *cmd_test* and *cmd_set*.
-Expects: a pointer to a vaiable of type struct rwIMEIData. In case of *cmd_set* this variable must contain the following fields:
+Expects: a pointer to a vaiable of type struct _dataEGMR. In case of *cmd_set* this variable must contain the following fields:
 imeiData.mode: imeiReadMode or imeiWriteMode
 imeiData.format: don't care, will be set automatically
 imeiData.IMEI: EMPTY_STRING or IMEI if imeiData.mode is imeiWriteMode
