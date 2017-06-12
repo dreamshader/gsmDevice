@@ -1257,13 +1257,16 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData,
 //
 // ************************************************************************
 //
-INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData, 
+INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, struct _dataCOPS *pData, 
                                   STRING &result, void *pParam )
 {
     INT16 retVal;
+    char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
     INT16 errNo;
+    INT16 dataIndex;
+    long timeout;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1281,24 +1284,35 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData,
                     command += OPERATOR_SELECT_CMD_TEST;
                     command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
+                    timeout = COPS_CMD_TEST_TIMEOUT;
                     break;
                 case cmd_read:
                     command = GSMDEVICE_ATTENTION;
                     command += OPERATOR_SELECT_CMD_READ;
                     command += GSMDEVICE_CRLF_STRING;
                     retVal = GSMDEVICE_SUCCESS;
+                    timeout = GSMDEVICE_NO_TIMEOUT;
                     break;
                 case cmd_set:
-                    if( *pData == opSelectAuto ||
-                        *pData == opSelectManual ||
-                        *pData == opSelectDeregister ||
-                        *pData == opSelectFormatOnly ||
-                        *pData == opSelectManualAuto )
+                    if( pData->_selectMode == opSelectAuto ||
+                        pData->_selectMode == opSelectManual ||
+                        pData->_selectMode == opSelectDeregister ||
+                        pData->_selectMode == opSelectFormatOnly ||
+                        pData->_selectMode == opSelectManualAuto )
     
                     {
                         command = GSMDEVICE_ATTENTION;
                         command += OPERATOR_SELECT_CMD_SET;
-                        command += STRING(*pData);
+                        command += STRING(pData->_selectMode);
+
+                        if( pData->_format == opFormatLongAlpha ||
+                            pData->_format == opFormatShortAlpha ||
+                            pData->_format == opFormatNumeric )
+                        {
+                            command += ",";
+                            command += STRING(pData->_format);
+                        }
+
                         command += GSMDEVICE_CRLF_STRING;
                         retVal = GSMDEVICE_SUCCESS;
                     }
@@ -1306,6 +1320,7 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData,
                     {
                         retVal = GSMDEVICE_E_CMD_MODE;
                     }
+                    timeout = GSMDEVICE_NO_TIMEOUT;
                     break;
                 default:
                     retVal = GSMDEVICE_E_CMD_MODE;
@@ -1325,11 +1340,19 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, opSelectMode *pData,
                     case linuxDevice:
                         if((retVal=sendCommand(command, true, GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                         {
-                            retVal = readResponse( result, false, 120000 );
+                            retVal = readResponse( result, false, timeout );
 
                             if( retVal == GSMDEVICE_SUCCESS )
                             {
-                                retVal = checkResponse( result, dummy );
+                                if( (retVal = checkResponse( result, dummy )) == GSMDEVICE_SUCCESS )
+                                {
+                                    if( (retVal = getDataIndex(result, _pattern, GSMDEVICE_RESP_PATTERN_LEN, 
+                                                                &dataIndex ) == GSMDEVICE_SUCCESS) )
+                                    {
+// fprintf(stderr, "scan for [%s] from index %d\n", _pattern, dataIndex);
+                                        retVal = parseCOPS( cmdMode, result, _pattern, dataIndex, pData );
+                                    }
+                                }
                             }
                         }
                         break;
@@ -4761,29 +4784,122 @@ INT16 gsmDevice::listManCPOLLast( struct _listInString *list, STRING &result, vo
 }
 
 
+// ////////////////////////////////////////////////////////////////////////
+//
+// parseCOPS
+//   - parse response of AT+COPS command
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode  mode of call
+// - STRING response         holds response string
+// - char _pattern[]         pattern will be stored here
+// - INT16 dataIndex         index within string
+// - struct _dataCSQ *pData  points to data structure
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_RESULT    no result found
+// - GSMDEVICE_E_INVAL     invalid result parameter
+// - GSMDEVICE_E_TOO_SHORT response string too short
+// - GSMDEVICE_E_CMD_MODE  command mode invalid
+// - GSMDEVICE_E_P_NULL    response is empty string or NULL
+//
+// - GSMDEVICE_E_PATTERN  no pattern in response found
+// ////////////////////////////////////////////////////////////////////////
+//
+INT16 gsmDevice::parseCOPS( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCOPS *pData )
+{
+    INT16 retVal;
+    char *_tmpRawString;
+    char tmpBuffer[64];
+
+    int cmgfMode;
+    int cmgfMode1, cmgfMode2;
+
+    if( pData != NULL )
+    {
+        if( (dataIndex+strlen(_pattern)) < response.length() )
+        {
+            if( (_tmpRawString = response.c_str()) != NULL )
+            {
+                _tmpRawString += dataIndex;
+
+                if( *_tmpRawString != _pattern[0] )
+                {
+// fprintf(stderr, "seems to be no data >%s\n", _tmpRawString );
+                    retVal = GSMDEVICE_E_RESULT;
+                }
+                else
+                {
+fprintf(stderr, "Go skipping pattern [%s] >%s\n", _pattern, _tmpRawString ); 
+                    _tmpRawString += strlen(_pattern);
+fprintf(stderr, "skipped pattern >%s\n",  _tmpRawString ); 
+                    if( strlen(_tmpRawString) )
+                    {
+                        switch( cmdMode )
+                        {
+                            case cmd_test:
+                                pData->_list = _tmpRawString;
+                                break;
+                            case cmd_read:
+                                memset( tmpBuffer, '\0', sizeof( tmpBuffer) );
+                                if( sscanf(_tmpRawString, readResponseFmtCOPS, 
+                                    (int*) &pData->_selectMode, (int*) &pData->_format, tmpBuffer ) >= 1 )
+                                {
+                                    if( strlen(tmpBuffer) )
+                                    {
+                                        pData->_oper = tmpBuffer;
+                                    }
+
+fprintf(stderr, "COPS: pData->_selectMode: %d, pData->_format: %d, pData->_oper: %s\n", pData->_selectMode, pData->_format, pData->_oper.c_str() );
+
+                                    retVal = GSMDEVICE_SUCCESS;
+                                }
+                                else
+                                {
+                                    retVal = GSMDEVICE_E_RESULT;
+                                }
+                                break;
+                            case cmd_set:
+                            case cmd_execute:
+                                break;
+                            default:
+                                retVal = GSMDEVICE_E_CMD_MODE;
+                        }
+                    }
+                    else
+                    {
+                        retVal = GSMDEVICE_E_RESULT;
+                    }
+                }
+            }
+            else
+            {
+                retVal = GSMDEVICE_E_P_NULL;
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_E_TOO_SHORT;
+        }
+    }
+    else
+    {
+        retVal = GSMDEVICE_E_P_NULL;
+    }
 
 
-// struct _dataCPOL {
-//     // cmd_test param
-//     int fromIndex;
-//     int toIndex;
-//     prefOperList fromFormat;
-//     prefOperList toFormat;
-//     // cmd_set param
-//     int index;
-//     prefOperList format;
-//     STRING oper;
-//     // cmd_read param
-//     STRING list;
-
-
-
-// readResponseFmtCPOL
+    return( _lastError = retVal );
+}
 
 
 
 
 
+
+
+// +COPS: (2,"Vodafone.de","Vodafone.de","26202"),(3,"E-Plus","E-Plus","26203"),(3,"T-MobileD","T-MobileD","26201")
 
 
 
@@ -4893,6 +5009,44 @@ INT16 gsmDevice::parseCSQ( gsmCommandMode cmdMode, STRING response, char _patter
 }
 
 
+
+
+
+ATZ                            // Reset module
+ATZ
+OK
+ATE0                           // Disable echo
+ATE0
+OK
+AT+CGMI                        // Request manufacturer identification
+Telit
+OK
+AT+CGMM                        // Request model identification
+GE864-QUAD-V2
+OK
+AT+CGMR                        // Request revision identification
+10.00.022
+OK
+AT+CMEE=?                      // List extended error codes
++CMEE: (0-2)
+OK
+AT+CMEE=2                      // Set extended error codes
+OK
+AT+CPIN?                       // Check if PIN is ok
++CPIN: SIM PIN
+OK
+at+cpin=1234                   // Enter PIN
+OK
+at+csca?                       // Check SMSC number
++CSCA: "",129
+OK
+at+cmgf=1                      // Set text mode for SMS messages
+OK
+at+cnmi=3,1,0,0,1              // Enable message indications
+OK
+//
+// *** Initialization complete ***
+//
 // 
 // -------------------NOTHING IMPORTAN BEHIND THIS LINE -----------------
 // 

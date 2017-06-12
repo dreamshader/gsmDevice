@@ -338,6 +338,8 @@ enum cmdResultCodeFormat
 #define OPERATOR_SELECT_CMD_READ      "+COPS?"
 #define OPERATOR_SELECT_CMD_SET       "+COPS="
 
+#define COPS_CMD_TEST_TIMEOUT         120000
+
 enum opSelectMode
 {
     opSelectAuto       = 0,
@@ -346,6 +348,45 @@ enum opSelectMode
     opSelectFormatOnly = 3,
     opSelectManualAuto = 4
 };
+
+enum opFormat
+{
+    opFormatLongAlpha,
+    opFormatShortAlpha,
+    opFormatNumeric
+};
+
+enum opStat
+{
+    opStatUnknown,
+    opStatAvailable,
+    opStatCurrent,
+    opStatForbidden
+};
+
+
+#define testResponseFmtCOPS           "(%d,\"%s\",\"%s\",\"%s\")"
+#define readResponseFmtCOPS           "%d,%d,%s\r\n"
+
+
+struct _dataCOPS {
+    // cmd_read param
+    opSelectMode _selectMode;
+    opFormat _format;
+    STRING _oper;
+    STRING _list;
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -444,23 +485,7 @@ struct _dataCPOL {
     STRING list;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // -------------
-
 
 #define REQUEST_IMSI_CMD_TEST         "+CIMI=?"
 #define REQUEST_IMSI_CMD_SET          "+CIMI"
@@ -588,7 +613,7 @@ public:
                         STRING &result, void *pParam = NULL );
     INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
                         STRING &result, void *pParam = NULL );
-    INT16 operatorSelects( gsmCommandMode cmdMode, opSelectMode *pFmt, 
+    INT16 operatorSelects( gsmCommandMode cmdMode, struct _dataCOPS *pData, 
                                   STRING &result, void *pParam = NULL );
     INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, 
                                   STRING &result, void *pParam = NULL );
@@ -632,10 +657,9 @@ private:
     INT16 removeEcho( STRING &result, STRING &dummy );
     INT16 parseCREG( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCREG *pData );
     INT16 parseCPOL( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCPOL *pData );
+    INT16 parseCOPS( gsmCommandMode cmdMode, STRING response, char _pattern[], INT16 dataIndex, struct _dataCOPS *pData );
 
 
-//    INT16 listMan( struct _listInString *list, _listAction action, char *_pattern, int _patLen, STRING &result, void *pData );
-//    INT16 listManInitList( _listType type, struct _listInString *list, STRING srcList );
 
     INT16 listManFirst( struct _listInString *list, STRING &result, void *pData  = NULL );
     INT16 listManNext( struct _listInString *list, STRING &result, void *pData = NULL  );
