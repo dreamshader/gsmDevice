@@ -243,7 +243,7 @@ struct _gsm_errcode2msg {
 enum _listType 
 {
     listTypeCPOL,
-    listTypeOTHER
+    listTypeCOPS
 };
 
 enum _listAction
@@ -264,6 +264,7 @@ struct _listInString {
     _listType _type;
     int       _current;
     int       _iCurrent;
+    char      *_pCurrent;
     char      _tmpBuffer[GSMDEVICE_LIST_BUFFER_LEN+1];
     char     *_list;
 };
@@ -365,7 +366,8 @@ enum opStat
 };
 
 
-#define testResponseFmtCOPS           "(%d,\"%s\",\"%s\",\"%s\")"
+// #define testResponseFmtCOPS           "(%d,\"%16s\",\"%16s\",\"%16s\")"
+#define testResponseFmtCOPS           "(%d"
 #define readResponseFmtCOPS           "%d,%d,%s\r\n"
 
 
@@ -374,6 +376,10 @@ struct _dataCOPS {
     opSelectMode _selectMode;
     opFormat _format;
     STRING _oper;
+    INT16 _stat;
+    STRING _longAlphaOper;
+    STRING _shortAlphaOper;
+    STRING _numericOper;
     STRING _list;
 };
 
@@ -670,7 +676,12 @@ private:
     INT16 listManCPOLPrev( struct _listInString *list, STRING &result, void *pData = NULL  );
     INT16 listManCPOLLast( struct _listInString *list, STRING &result, void *pData = NULL  );
     INT16 listManGetLine( struct _listInString *list );
+    INT16 listManCOPSFirst( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManCOPSNext( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManCOPSPrev( struct _listInString *list, STRING &result, void *pData = NULL  );
+    INT16 listManCOPSLast( struct _listInString *list, STRING &result, void *pData = NULL  );
 
+    int parseCOPSListItems( char *pCurrent, char *tmpLongAlphaOper, char *tmpShortAlphaOper, char *tmpNumericOper );
 
 
 
