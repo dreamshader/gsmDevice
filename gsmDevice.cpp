@@ -5068,42 +5068,49 @@ INT16 gsmDevice::listManCOPSFirst( struct _listInString *list, STRING &result, v
     if( list != NULL && list->_list != NULL )
     {
 
-        if( list->_type != listTypeCOPS )
-        {
-            retVal = GSMDEVICE_LIST_E_TYPE;
-        }
-        else
+        if( list->_type == listTypeCOPS )
         {
             // set to 0 -> start at the beginning
             list->_current = 0;
             list->_iCurrent = 0;
 
-            if( (list->_pCurrent = strchr(list->_list, '(' )) != NULL )
+            if( list->_pCurrent != NULL )
             {
-fprintf(stderr, "found 1st sequence: >%s<\n", list->_pCurrent);
-                if( (resultData = ( struct _dataCOPS*) pData) != NULL )
-                {
-fprintf(stderr, "we have a data pointer.\n");
-                    memset( tmpLongAlphaOper, '\0', sizeof(tmpLongAlphaOper) );
-                    memset( tmpShortAlphaOper, '\0', sizeof(tmpShortAlphaOper) );
-                    memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
 
-                    if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
-                                        (int*) &resultData->_stat)) >= 1)
+                char *_currPtr;
+
+                if( (_currPtr = strchr(list->_list, '(' )) != NULL )
+                {
+                    list->_pCurrent = _currPtr;
+fprintf(stderr, "found 1st sequence: >%s<\n", list->_pCurrent);
+                    if( (resultData = ( struct _dataCOPS*) pData) != NULL )
                     {
-                        if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
-                                     tmpShortAlphaOper, tmpNumericOper )) >= 1 )
+fprintf(stderr, "we have a data pointer.\n");
+                        memset( tmpLongAlphaOper, '\0', sizeof(tmpLongAlphaOper) );
+                        memset( tmpShortAlphaOper, '\0', sizeof(tmpShortAlphaOper) );
+                        memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
+
+                        if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
+                                            (int*) &resultData->_stat)) >= 1)
                         {
+                            if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
+                                         tmpShortAlphaOper, tmpNumericOper )) >= 1 )
+                            {
 fprintf(stderr, "scanned %d item(s).\n", items);
 fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
 fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
 fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
 
-                            resultData->_longAlphaOper  = tmpLongAlphaOper;
-                            resultData->_shortAlphaOper = tmpShortAlphaOper;
-                            resultData->_numericOper    = tmpNumericOper;
+                                resultData->_longAlphaOper  = tmpLongAlphaOper;
+                                resultData->_shortAlphaOper = tmpShortAlphaOper;
+                                resultData->_numericOper    = tmpNumericOper;
 
-                            retVal = GSMDEVICE_SUCCESS;
+                                retVal = GSMDEVICE_SUCCESS;
+                            }
+                            else
+                            {
+                                retVal = GSMDEVICE_E_RESULT;
+                            }
                         }
                         else
                         {
@@ -5112,18 +5119,22 @@ fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
                     }
                     else
                     {
-                        retVal = GSMDEVICE_E_RESULT;
+                        retVal = GSMDEVICE_LIST_E_NULL;
                     }
                 }
                 else
                 {
-                    retVal = GSMDEVICE_LIST_E_NULL;
+                    retVal = GSMDEVICE_LIST_E_NO_MORE;
                 }
             }
             else
             {
                 retVal = GSMDEVICE_LIST_E_NO_MORE;
             }
+        }
+        else
+        {
+            retVal = GSMDEVICE_LIST_E_TYPE;
         }
     }
     else
@@ -5147,49 +5158,52 @@ INT16 gsmDevice::listManCOPSNext( struct _listInString *list, STRING &result, vo
 
     if( list != NULL && list->_list != NULL )
     {
-        if( list->_type != listTypeCOPS )
+        if( list->_type == listTypeCOPS )
         {
-            retVal = GSMDEVICE_LIST_E_TYPE;
-        }
-        else
-        {
-            if( strlen(list->_pCurrent)  <= 3 )  // at least brackets and comma
+            if( list->_pCurrent != NULL )
             {
-                retVal = GSMDEVICE_LIST_E_NO_MORE;
-            }
-            else
-            {
-                char *_tmpPtr = list->_pCurrent;
-                _tmpPtr++;
-
-                list->_current = 0;
-
-                if( (list->_pCurrent = strchr(_tmpPtr, '(' )) != NULL )
+                if( strlen(list->_pCurrent)  > 3 )  // at least brackets and comma
                 {
-                    list->_current++;
+                    char *_currPtr;
+                    char *_tmpPtr = list->_pCurrent;
+                    _tmpPtr++;
 
-                    if( (resultData = ( struct _dataCOPS*) pData) != NULL )
+fprintf(stderr, "NEXT ITEM: points to >%s\n", _tmpPtr);
+
+                    if( (_currPtr = strchr(_tmpPtr, '(' )) != NULL )
                     {
-                        memset( tmpLongAlphaOper, '\0', sizeof(tmpLongAlphaOper) );
-                        memset( tmpShortAlphaOper, '\0', sizeof(tmpShortAlphaOper) );
-                        memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
+                        list->_pCurrent = _currPtr;
+                        list->_current++;
 
-                        if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
-                                            (int*) &resultData->_stat)) >= 1)
+fprintf(stderr, "NEXT ITEM: current item is %d\n", list->_current);
+
+                        if( (resultData = ( struct _dataCOPS*) pData) != NULL )
                         {
-                            if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
-                                         tmpShortAlphaOper, tmpNumericOper )) >= 1 )
+                            memset( tmpLongAlphaOper, '\0', sizeof(tmpLongAlphaOper) );
+                            memset( tmpShortAlphaOper, '\0', sizeof(tmpShortAlphaOper) );
+                            memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
+
+                            if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
+                                                (int*) &resultData->_stat)) >= 1)
                             {
+                                if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
+                                             tmpShortAlphaOper, tmpNumericOper )) >= 1 )
+                                {
 fprintf(stderr, "scanned %d item(s).\n", items);
 fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
 fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
 fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
 
-                                resultData->_longAlphaOper  = tmpLongAlphaOper;
-                                resultData->_shortAlphaOper = tmpShortAlphaOper;
-                                resultData->_numericOper    = tmpNumericOper;
+                                    resultData->_longAlphaOper  = tmpLongAlphaOper;
+                                    resultData->_shortAlphaOper = tmpShortAlphaOper;
+                                    resultData->_numericOper    = tmpNumericOper;
 
-                                retVal = GSMDEVICE_SUCCESS;
+                                    retVal = GSMDEVICE_SUCCESS;
+                                }
+                                else
+                                {
+                                    retVal = GSMDEVICE_E_RESULT;
+                                }
                             }
                             else
                             {
@@ -5198,12 +5212,12 @@ fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
                         }
                         else
                         {
-                            retVal = GSMDEVICE_E_RESULT;
+                            retVal = GSMDEVICE_LIST_E_NULL;
                         }
                     }
                     else
                     {
-                        retVal = GSMDEVICE_LIST_E_NULL;
+                        retVal = GSMDEVICE_LIST_E_NO_MORE;
                     }
                 }
                 else
@@ -5211,7 +5225,16 @@ fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
                     retVal = GSMDEVICE_LIST_E_NO_MORE;
                 }
             }
+            else
+            {
+                retVal = GSMDEVICE_LIST_E_NO_MORE;
+            }
         }
+        else
+        {
+            retVal = GSMDEVICE_LIST_E_TYPE;
+        }
+
     }
     else
     {
@@ -5227,6 +5250,7 @@ INT16 gsmDevice::listManCOPSPrev( struct _listInString *list, STRING &result, vo
     INT16 retVal;
     struct _dataCOPS *resultData;
     int items;
+    int currItem;
 
     char tmpLongAlphaOper[16];
     char tmpShortAlphaOper[16];
@@ -5234,62 +5258,25 @@ INT16 gsmDevice::listManCOPSPrev( struct _listInString *list, STRING &result, vo
 
     if( list != NULL && list->_list != NULL )
     {
-        if( list->_type != listTypeCOPS )
+        if( list->_type == listTypeCOPS )
         {
-            retVal = GSMDEVICE_LIST_E_TYPE;
-        }
-        else
-        {
-            if( list->_pCurrent <= list->_list )
+            if( list->_pCurrent != NULL )
             {
-                retVal = GSMDEVICE_LIST_E_NO_MORE;
-            }
-            else
-            {
-                char *_tmpPtr = list->_pCurrent;
-                _tmpPtr--;
-
-                if( (list->_pCurrent = strrchr(_tmpPtr, '(' )) != NULL )
+                if( list->_pCurrent > list->_list )
                 {
-                    list->_current--;
-
-                    if( (resultData = ( struct _dataCOPS*) pData) != NULL )
+                    if( (currItem = list->_current) > 0 )
                     {
-                        memset( tmpLongAlphaOper, '\0', sizeof(tmpLongAlphaOper) );
-                        memset( tmpShortAlphaOper, '\0', sizeof(tmpShortAlphaOper) );
-                        memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
-
-                        if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
-                                            (int*) &resultData->_stat)) >= 1)
+                        if( (retVal = listManCOPSFirst( list, result, pData )) == GSMDEVICE_SUCCESS )
                         {
-//
-                            if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
-                                         tmpShortAlphaOper, tmpNumericOper )) >= 1 )
+                            while( retVal == GSMDEVICE_SUCCESS && list->_current < currItem - 1 )
                             {
-fprintf(stderr, "scanned %d item(s).\n", items);
-fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
-
-                                resultData->_longAlphaOper  = tmpLongAlphaOper;
-                                resultData->_shortAlphaOper = tmpShortAlphaOper;
-                                resultData->_numericOper    = tmpNumericOper;
-
-                                retVal = GSMDEVICE_SUCCESS;
+                                retVal = listManCOPSNext( list, result, pData );
                             }
-                            else
-                            {
-                                retVal = GSMDEVICE_E_RESULT;
-                            }
-                        }
-                        else
-                        {
-                            retVal = GSMDEVICE_E_RESULT;
                         }
                     }
                     else
                     {
-                        retVal = GSMDEVICE_LIST_E_NULL;
+                        retVal = GSMDEVICE_LIST_E_NO_MORE;
                     }
                 }
                 else
@@ -5297,6 +5284,14 @@ fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
                     retVal = GSMDEVICE_LIST_E_NO_MORE;
                 }
             }
+            else
+            {
+                retVal = GSMDEVICE_LIST_E_NO_MORE;
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_LIST_E_TYPE;
         }
     }
     else
@@ -5506,14 +5501,6 @@ INT16 gsmDevice::parseCOPS( gsmCommandMode cmdMode, STRING response, char _patte
 
     return( _lastError = retVal );
 }
-
-
-
-
-
-
-
-// +COPS: (2,"Vodafone.de","Vodafone.de","26202"),(3,"E-Plus","E-Plus","26203"),(3,"T-MobileD","T-MobileD","26201")
 
 
 
