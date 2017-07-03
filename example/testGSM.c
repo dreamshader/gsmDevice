@@ -1,5 +1,5 @@
 
-#include "gsmDevice.h"
+#include "../gsmDevice.h"
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -552,7 +552,7 @@ Serial.println(exitCode);
 
             result = GSMDEVICE_EMPTY_STRING;
 
--> add phone here            smsData.phoneNum = "0049...";
+->   add phone here            smsData.phoneNum = "0049...";
             smsData.message = "Servus Du!";
             //
             exitCode = myDevice.sendSMSMessage( cmd_set, &smsData, result);

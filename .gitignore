@@ -2,5 +2,7 @@
 *.swp
 *.log
 testGSM
+testGSM.c
+Makefile
 temp/
 
