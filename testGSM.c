@@ -552,7 +552,7 @@ Serial.println(exitCode);
 
             result = GSMDEVICE_EMPTY_STRING;
 
-            smsData.phoneNum = "00491757874870";
+-> add phone here            smsData.phoneNum = "0049...";
             smsData.message = "Servus Du!";
             //
             exitCode = myDevice.sendSMSMessage( cmd_set, &smsData, result);
