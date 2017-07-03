@@ -97,7 +97,8 @@ extern "C" {
 #define GSMDEVICE_SYNC_RSP            "OK"
 #define GSMDEVICE_READ_TIMEOUT      30000   // up to 30 sec. response time
 #define GSMDEVICE_READ_DELAY          100
-
+#define GSMDEVICE_MIN_PHONE_NUM         3
+#define GSMDEVICE_MIN_SMS_MSGLEN        1
 //
 // parameter values
 
@@ -141,6 +142,8 @@ extern "C" {
 #define GSMDEVICE_E_INVAL             -42
 #define GSMDEVICE_E_TOO_SHORT         -43
 #define GSMDEVICE_E_FMT               -44
+#define GSMDEVICE_E_PHONE_NUM         -45
+#define GSMDEVICE_E_SMS_MSG           -46
 
 #define GSMDEVICE_LIST_E_TYPE         -50
 #define GSMDEVICE_LIST_E_ACTION       -51
@@ -166,6 +169,10 @@ extern "C" {
 #define GSMDEVICE_CR_STRING           "\r"
 #define GSMDEVICE_LF_STRING           "\n"
 #define GSMDEVICE_CRLF_STRING         "\r\n"
+#define GSMDEVICE_CTRL_Z              0x1a
+#define GSMDEVICE_CTRL_Z_STRING       ""
+#define GSMDEVICE_SEND_SMS_MSG_PROMT  ">"
+
 
 // 
 // ---------------------- TYPES - NOT GSM RELATED -----------------------
@@ -373,32 +380,15 @@ enum opStat
 
 struct _dataCOPS {
     // cmd_read param
-    opSelectMode _selectMode;
-    opFormat _format;
-    STRING _oper;
-    INT16 _stat;
-    STRING _longAlphaOper;
-    STRING _shortAlphaOper;
-    STRING _numericOper;
-    STRING _list;
+    opSelectMode selectMode;
+    opFormat format;
+    STRING oper;
+    INT16 stat;
+    STRING longAlphaOper;
+    STRING shortAlphaOper;
+    STRING numericOper;
+    STRING list;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // -------------
 
@@ -501,8 +491,8 @@ struct _dataCPOL {
 #define GSM_MAX_IMSI_LENGTH           15
 
 struct _dataIMSI {
-    INT16 _length;
-    char _raw[GSM_MAX_IMSI_LENGTH+1];
+    INT16 length;
+    char raw[GSM_MAX_IMSI_LENGTH+1];
 };
 
 #define setResponseFmtIMSI            "%15s\r\n"
@@ -525,8 +515,8 @@ struct _dataEGMR {
     rwIMEIMode mode;
     INT16 format;
     STRING IMEI;
-    char _raw[GSM_MAX_IMEI_LENGTH+1];
-    int _length;
+    char raw[GSM_MAX_IMEI_LENGTH+1];
+    int length;
 };
 
 #define setResponseFmtEGMR            "%15s\r\n"
@@ -539,10 +529,38 @@ struct _dataEGMR {
 // no additional data
 
 
+// -------------
+
 #define REQUEST_MANSPEC_INFO_CMD_SET  "I"
 
 // no additional data
 
+// -------------
+
+#define GSMDEVICE_SMS_MSG_MAXLEN      160   // max. length per msg
+
+// #define GSMDEVICE_CTRL_Z              0x1a
+// #define GSMDEVICE_CTRL_Z_STRING       ""
+
+
+#define SEND_SMS_MSG_CMD_TEST       "+CMGS=?"
+#define SEND_SMS_MSG_CMD_SET        "+CMGS="
+
+
+#define readResponseFmtCMGS           "%d \r\n"
+#define testResponseFmtCMGS           "(%d,%d)\r\n"
+
+struct _dataCMGS {
+    STRING phoneNum;
+    STRING message;
+};
+
+// For Email, you can use www.smtp2go.com along with Wifly and Mifi from any provider.
+// I guess that's not what you asked... 
+
+// api-723590885F2E11E7AB54F23C91BBF4A0
+// dreamshader@dreamshader.de
+// DidPfs2g!
 
 
 #ifdef __cplusplus
@@ -618,25 +636,27 @@ public:
     INT16 smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData, 
                         STRING &result, void *pParam = NULL );
     INT16 resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *pFmt, 
-                        STRING &result, void *pParam = NULL );
+                            STRING &result, void *pParam = NULL );
     INT16 operatorSelects( gsmCommandMode cmdMode, struct _dataCOPS *pData, 
-                                  STRING &result, void *pParam = NULL );
+                           STRING &result, void *pParam = NULL );
     INT16 commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt, 
-                                  STRING &result, void *pParam = NULL );
+                       STRING &result, void *pParam = NULL );
     INT16 networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData, 
-                                  STRING &result, void *pParam = NULL );
+                               STRING &result, void *pParam = NULL );
     INT16 signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
-                                  STRING &result, void *pParam = NULL );
+                         STRING &result, void *pParam = NULL );
     INT16 preferredOperatorList( gsmCommandMode cmdMode, _dataCPOL *pData, 
-                                  STRING &result, void *pParam = NULL );
+                                 STRING &result, void *pParam = NULL );
     INT16 requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI *pData, 
-                                  STRING &result, void *pParam = NULL );
+                       STRING &result, void *pParam = NULL );
     INT16 readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR *pData, 
-                                  STRING &result, void *pParam = NULL );
+                         STRING &result, void *pParam = NULL );
     INT16 requestRevisionId( gsmCommandMode cmdMode, void *pIgnored, 
-                                  STRING &result, void *pParam = NULL );
+                             STRING &result, void *pParam = NULL );
     INT16 requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValue, 
-                                  STRING &result, void *pParam = NULL );
+                                   STRING &result, void *pParam = NULL );
+    INT16 sendSMSMessage( gsmCommandMode cmdMode, _dataCMGS *pData, 
+                          STRING &result, void *pParam = NULL );
 
 
     INT16 listMan( struct _listInString *list, _listAction action, char *_pattern, int _patLen, STRING &result, void *pData );

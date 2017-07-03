@@ -54,6 +54,7 @@
 // - AT+CIMI - Request international mobile subscriber identity
 // - AT+EGMR - Read and write IMEI
 // - AT+CGMR - Request revision identification
+// - AT+CMGS - Send SMS message
 //
 // -------- Todo list -----------------------------------------------------
 //
@@ -88,6 +89,8 @@
 // -- rework done on read from UART
 // -- fixed: operator selects returns -16386 on cmd_test
 //
+// - 07/03/17 
+// - added AT+CMGS - Send SMS message
 //
 // ************************************************************************
 //
@@ -1079,7 +1082,6 @@ INT16 gsmDevice::resultCodeFormat( gsmCommandMode cmdMode, cmdResultCodeFormat *
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1180,7 +1182,6 @@ INT16 gsmDevice::smsMsgFormat( gsmCommandMode cmdMode, _dataCMGF *pData,
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
     INT16 dataIndex;
 
     if( _cmdPortType  == nodev ||
@@ -1306,7 +1307,6 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, struct _dataCOPS *pDat
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
     INT16 dataIndex;
     long timeout;
 
@@ -1336,23 +1336,23 @@ INT16 gsmDevice::operatorSelects( gsmCommandMode cmdMode, struct _dataCOPS *pDat
                     timeout = GSMDEVICE_NO_TIMEOUT;
                     break;
                 case cmd_set:
-                    if( pData->_selectMode == opSelectAuto ||
-                        pData->_selectMode == opSelectManual ||
-                        pData->_selectMode == opSelectDeregister ||
-                        pData->_selectMode == opSelectFormatOnly ||
-                        pData->_selectMode == opSelectManualAuto )
+                    if( pData->selectMode == opSelectAuto ||
+                        pData->selectMode == opSelectManual ||
+                        pData->selectMode == opSelectDeregister ||
+                        pData->selectMode == opSelectFormatOnly ||
+                        pData->selectMode == opSelectManualAuto )
     
                     {
                         command = GSMDEVICE_ATTENTION;
                         command += OPERATOR_SELECT_CMD_SET;
-                        command += STRING(pData->_selectMode);
+                        command += STRING(pData->selectMode);
 
-                        if( pData->_format == opFormatLongAlpha ||
-                            pData->_format == opFormatShortAlpha ||
-                            pData->_format == opFormatNumeric )
+                        if( pData->format == opFormatLongAlpha ||
+                            pData->format == opFormatShortAlpha ||
+                            pData->format == opFormatNumeric )
                         {
                             command += ",";
-                            command += STRING(pData->_format);
+                            command += STRING(pData->format);
                         }
 
                         command += GSMDEVICE_CRLF_STRING;
@@ -1446,7 +1446,6 @@ INT16 gsmDevice::commandEcho( gsmCommandMode cmdMode, cmdEcho *pFmt,
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -1547,7 +1546,6 @@ INT16 gsmDevice::networkRegistration( gsmCommandMode cmdMode, _dataCREG *pData,
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
 
@@ -1673,7 +1671,6 @@ INT16 gsmDevice::signalQuality( gsmCommandMode cmdMode, struct _dataCSQ *pData,
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
 
@@ -1775,7 +1772,6 @@ INT16 gsmDevice::preferredOperatorList( gsmCommandMode cmdMode, _dataCPOL *pData
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
     INT16 dataIndex;
 
@@ -1941,7 +1937,6 @@ INT16 gsmDevice::requestIMSI( gsmCommandMode cmdMode, struct _dataIMSI *pData,
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -2044,7 +2039,6 @@ INT16 gsmDevice::readWriteIMEI( gsmCommandMode cmdMode, struct _dataEGMR *pData,
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
     INT16 dataIndex;
     char _pattern[GSMDEVICE_RESP_PATTERN_LEN];
 
@@ -2158,7 +2152,6 @@ INT16 gsmDevice::requestRevisionId( gsmCommandMode cmdMode, void *pIgnored,
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -2249,7 +2242,6 @@ INT16 gsmDevice::requestManufacturerData( gsmCommandMode cmdMode, INT16 infoValu
     INT16 retVal;
     STRING command = GSMDEVICE_EMPTY_STRING;
     STRING dummy = GSMDEVICE_EMPTY_STRING;
-    INT16 errNo;
 
     if( _cmdPortType  == nodev ||
         _devStatus    == created )
@@ -2366,6 +2358,246 @@ INT16 gsmDevice::getError( STRING &errMsg )
 
     return( _lastError = retVal );
 }
+
+//
+// ************************************************************************
+//
+// send SMS message (AT+CMGS)
+// - send a message to a specific receipiant
+//
+// Expected arguments:
+// - gsmCommandMode cmdMode    cmd_set only
+// - struct _dataCMGS *pData   points to data structure
+// - STRING &result            reference to hold result string
+// - void *pParam              pointer to additional parameters
+// 
+// Returns an INT16 as status code:
+// - GSMDEVICE_SUCCESS on succes, or
+// depending of the failure that occurred 
+// - GSMDEVICE_E_INIT      instance is not initialized
+// - GSMDEVICE_E_SUPPORTED not yet supported (e.g. stream device)
+// - GSMDEVICE_E_CMD_MODE  invalid command mode
+//
+// ************************************************************************
+//
+INT16 gsmDevice::sendSMSMessage( gsmCommandMode cmdMode, _dataCMGS *pData, 
+                               STRING &result, void *pParam )
+{
+    INT16 retVal;
+    STRING command = GSMDEVICE_EMPTY_STRING;
+    STRING dummy = GSMDEVICE_EMPTY_STRING;
+    struct _dataCMGF msgFormat;
+
+    if( _cmdPortType  == nodev ||
+        _devStatus    == created )
+    {
+        retVal = GSMDEVICE_E_INIT;
+    }
+    else
+    {
+        if( pData != NULL )
+        {
+            switch( cmdMode )
+            {
+                case cmd_test:
+                    command = GSMDEVICE_ATTENTION;
+                    command += SEND_SMS_MSG_CMD_TEST;
+                    command += GSMDEVICE_CRLF_STRING;
+                    retVal = GSMDEVICE_SUCCESS;
+                    break;
+                case cmd_set:
+                    if( pData->phoneNum.length() < GSMDEVICE_MIN_PHONE_NUM )
+                    {
+                        retVal = GSMDEVICE_E_PHONE_NUM;
+                    }
+                    else
+                    {
+                        if( pData->message.length() < GSMDEVICE_MIN_SMS_MSGLEN )
+                        {
+                            retVal = GSMDEVICE_E_SMS_MSG;
+                        }
+                        else
+                        {
+                            result = GSMDEVICE_EMPTY_STRING;
+                            msgFormat.current = smsTXTMode;
+                            retVal = smsMsgFormat( cmd_set, &msgFormat, result );
+                        }
+                    }
+                    break;
+                default:
+                    retVal = GSMDEVICE_E_CMD_MODE;
+                    break;
+            }
+
+
+// ACHTUNG!! AUCH MIT ECHO ON PROBIEREN!!!
+
+            if( retVal == GSMDEVICE_SUCCESS )
+            {
+                result = GSMDEVICE_EMPTY_STRING;
+
+                switch( _cmdPortType )
+                {
+                    case swSerial:
+                    case hwSerial:
+                    case linuxDevice:
+                        if( cmdMode == cmd_test )
+                        {
+                            if((retVal=sendCommand(command, true, 
+                                                  GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                            {
+                                if( (retVal = readResponse( result, false, 
+                                                 GSMDEVICE_NO_TIMEOUT )) == GSMDEVICE_SUCCESS )
+                                {
+                                    retVal = checkResponse( result, dummy );
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if( cmdMode == cmd_set )
+                            {
+                                command = GSMDEVICE_ATTENTION;
+                                command += SEND_SMS_MSG_CMD_SET;
+                                command += pData->phoneNum;
+                                command += GSMDEVICE_CRLF_STRING;
+
+// fprintf(stderr, "AT+CMGS: command is >%s<\n", command.c_str());
+
+                                if((retVal=sendCommand(command, true, 
+                                                  GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                                {
+sleep(2);
+                                    if( (retVal = readResponse( result, false, 
+                                                 GSMDEVICE_NO_TIMEOUT )) == GSMDEVICE_SUCCESS )
+                                    {
+                                        retVal = parseResponse( result, 
+                                                         GSMDEVICE_SEND_SMS_MSG_PROMT, dummy );
+
+                                        if( retVal != GSMDEVICE_SUCCESS )
+                                        {
+                                            retVal = checkResponse( result, dummy );
+                                        }
+                                    }
+                                }
+
+                                if( retVal == GSMDEVICE_SUCCESS )
+                                {
+                                    command = pData->message;
+                                    command += GSMDEVICE_CTRL_Z_STRING;
+                                    command += GSMDEVICE_CRLF_STRING;
+
+// fprintf(stderr, "AT+CMGS: command is >%s<\n", command.c_str());
+
+                                    if((retVal=sendCommand(command, true, 
+                                                      GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
+                                    {
+sleep(2);
+                                        if( (retVal = readResponse( result, false, 
+                                                     GSMDEVICE_NO_TIMEOUT )) == GSMDEVICE_SUCCESS )
+                                        {
+                                            retVal = checkResponse( result, dummy );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case streamType:
+                        retVal = GSMDEVICE_E_SUPPORTED;
+                        break;
+                    case nodev:
+                    default:
+                        retVal = GSMDEVICE_E_INIT;
+                }
+            }
+        }
+        else
+        {
+            retVal = GSMDEVICE_E_P_NULL;
+        }
+    }
+
+
+
+
+
+    return( _lastError = retVal );
+}
+
+
+
+// AT+CMGS=?00491757874870"
+// 
+// +CME ERROR:58
+// AT+CMGS=?+491757874870"
+// 
+// +CME ERROR:58
+// AT+CMGS=?01757874870"
+// 
+// +CME ERROR:58
+// AT+CMGS=00491757874870
+// 
+// >
+// 
+// 
+// > sdfghjkl1asdfghjkl2asdfghjkl3asdfghjkl4asdfghjkl5asdfghjkl6asdfghjkl1asdfghjkl2asdfghjkl3asdfghjkl4asdfghjkl5asdfghjkl6asdfghjkl1asdfghjkl2asdfghjkl3asdfghjklaa
+// \0x1a
+// +CMS ERROR:516
+// 
+// 
+// > sdfghjkl1asdfghjkl2asdfghjkl3asdfghjkl4asdfghjkl5asdfghjkl6asdfghjkl1asdfghjkl2asdfghjkl3asdfghjkl4asdfghjkl5asdfghjkl6asdfghjkl1asdfghjkl2asdfghjkl3asdfghjkla
+// \0x1a
+// +CMGS: 3
+// 
+// OK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // 
@@ -3840,8 +4072,8 @@ INT16 gsmDevice::parseIMSI( gsmCommandMode cmdMode, STRING response, struct _dat
                     retVal = GSMDEVICE_SUCCESS;
                     break;
                 case cmd_set:
-                    pData->_length = 0;
-                    memset( pData->_raw, '\0', GSM_MAX_IMSI_LENGTH+1 );
+                    pData->length = 0;
+                    memset( pData->raw, '\0', GSM_MAX_IMSI_LENGTH+1 );
 
                     maxLen = strlen( _tmpRawString );
 
@@ -3867,12 +4099,12 @@ INT16 gsmDevice::parseIMSI( gsmCommandMode cmdMode, STRING response, struct _dat
 // fprintf(stderr, "now lookup for IMSI ->%s\n", _tmpRawString); 
 #endif
 
-                    if( sscanf( _tmpRawString, setResponseFmtIMSI, pData->_raw ) )
+                    if( sscanf( _tmpRawString, setResponseFmtIMSI, pData->raw ) )
                     {
 #ifdef linux
-// fprintf(stderr, "VALID IMSI found for set mode[%s]\n", pData->_raw);
+// fprintf(stderr, "VALID IMSI found for set mode[%s]\n", pData->raw);
 #endif
-                        pData->_length = strlen( pData->_raw );
+                        pData->length = strlen( pData->raw );
                         retVal = GSMDEVICE_SUCCESS;
                     }
                     else
@@ -3965,12 +4197,12 @@ INT16 gsmDevice::parseEGMR( gsmCommandMode cmdMode, STRING response, char _patte
 // fprintf(stderr, "now lookup for IMEI ->%s\n", _tmpRawString); 
 #endif
 
-                            if( sscanf( _tmpRawString, setResponseFmtIMSI, pData->_raw ) )
+                            if( sscanf( _tmpRawString, setResponseFmtIMSI, pData->raw ) )
                             {
 #ifdef linux
-// fprintf(stderr, "VALID IMEI found for set mode[%s]\n", pData->_raw);
+// fprintf(stderr, "VALID IMEI found for set mode[%s]\n", pData->raw);
 #endif
-                                pData->_length = strlen( pData->_raw );
+                                pData->length = strlen( pData->raw );
                                 retVal = GSMDEVICE_SUCCESS;
                             }
                             else
@@ -5011,11 +5243,11 @@ int gsmDevice::parseCOPSListItems( char *pCurrent, char *tmpLongAlphaOper, char 
                 if( !copy )
                 {
                     items++;
-fprintf(stderr, "\n");
+// fprintf(stderr, "\n");
                 }
                 else
                 {
-fprintf(stderr, "copy: ");
+// fprintf(stderr, "copy: ");
                     switch( items )
                     {
                         case 0:
@@ -5042,7 +5274,7 @@ fprintf(stderr, "copy: ");
             default:
                 if( copy )
                 {
-fprintf(stderr, "%c ", *pCurrent);
+// fprintf(stderr, "%c ", *pCurrent);
                     *_ptmp++ = *pCurrent;
                 }
                 break;
@@ -5082,28 +5314,28 @@ INT16 gsmDevice::listManCOPSFirst( struct _listInString *list, STRING &result, v
                 if( (_currPtr = strchr(list->_list, '(' )) != NULL )
                 {
                     list->_pCurrent = _currPtr;
-fprintf(stderr, "found 1st sequence: >%s<\n", list->_pCurrent);
+// fprintf(stderr, "found 1st sequence: >%s<\n", list->_pCurrent);
                     if( (resultData = ( struct _dataCOPS*) pData) != NULL )
                     {
-fprintf(stderr, "we have a data pointer.\n");
+// fprintf(stderr, "we have a data pointer.\n");
                         memset( tmpLongAlphaOper, '\0', sizeof(tmpLongAlphaOper) );
                         memset( tmpShortAlphaOper, '\0', sizeof(tmpShortAlphaOper) );
                         memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
 
                         if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
-                                            (int*) &resultData->_stat)) >= 1)
+                                            (int*) &resultData->stat)) >= 1)
                         {
                             if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
                                          tmpShortAlphaOper, tmpNumericOper )) >= 1 )
                             {
-fprintf(stderr, "scanned %d item(s).\n", items);
-fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
+// fprintf(stderr, "scanned %d item(s).\n", items);
+// fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
+// fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
+// fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
 
-                                resultData->_longAlphaOper  = tmpLongAlphaOper;
-                                resultData->_shortAlphaOper = tmpShortAlphaOper;
-                                resultData->_numericOper    = tmpNumericOper;
+                                resultData->longAlphaOper  = tmpLongAlphaOper;
+                                resultData->shortAlphaOper = tmpShortAlphaOper;
+                                resultData->numericOper    = tmpNumericOper;
 
                                 retVal = GSMDEVICE_SUCCESS;
                             }
@@ -5168,14 +5400,14 @@ INT16 gsmDevice::listManCOPSNext( struct _listInString *list, STRING &result, vo
                     char *_tmpPtr = list->_pCurrent;
                     _tmpPtr++;
 
-fprintf(stderr, "NEXT ITEM: points to >%s\n", _tmpPtr);
+// fprintf(stderr, "NEXT ITEM: points to >%s\n", _tmpPtr);
 
                     if( (_currPtr = strchr(_tmpPtr, '(' )) != NULL )
                     {
                         list->_pCurrent = _currPtr;
                         list->_current++;
 
-fprintf(stderr, "NEXT ITEM: current item is %d\n", list->_current);
+// fprintf(stderr, "NEXT ITEM: current item is %d\n", list->_current);
 
                         if( (resultData = ( struct _dataCOPS*) pData) != NULL )
                         {
@@ -5184,19 +5416,19 @@ fprintf(stderr, "NEXT ITEM: current item is %d\n", list->_current);
                             memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
 
                             if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
-                                                (int*) &resultData->_stat)) >= 1)
+                                                (int*) &resultData->stat)) >= 1)
                             {
                                 if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
                                              tmpShortAlphaOper, tmpNumericOper )) >= 1 )
                                 {
-fprintf(stderr, "scanned %d item(s).\n", items);
-fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
+// fprintf(stderr, "scanned %d item(s).\n", items);
+// fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
+// fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
+// fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
 
-                                    resultData->_longAlphaOper  = tmpLongAlphaOper;
-                                    resultData->_shortAlphaOper = tmpShortAlphaOper;
-                                    resultData->_numericOper    = tmpNumericOper;
+                                    resultData->longAlphaOper  = tmpLongAlphaOper;
+                                    resultData->shortAlphaOper = tmpShortAlphaOper;
+                                    resultData->numericOper    = tmpNumericOper;
 
                                     retVal = GSMDEVICE_SUCCESS;
                                 }
@@ -5328,8 +5560,8 @@ INT16 gsmDevice::listManCOPSLast( struct _listInString *list, STRING &result, vo
                 ;
             }
 
-            if( (retVal = listManCOPSPrev( list, result, pData )) == GSMDEVICE_SUCCESS )
-            {
+//            if( (retVal = listManCOPSPrev( list, result, pData )) == GSMDEVICE_SUCCESS )
+//            {
                 if( (resultData = ( struct _dataCOPS*) pData) != NULL )
                 {
                     memset( tmpLongAlphaOper, '\0', sizeof(tmpLongAlphaOper) );
@@ -5337,19 +5569,19 @@ INT16 gsmDevice::listManCOPSLast( struct _listInString *list, STRING &result, vo
                     memset( tmpNumericOper, '\0', sizeof(tmpNumericOper) );
 
                     if( (items = sscanf(list->_pCurrent, testResponseFmtCOPS, 
-                                        (int*) &resultData->_stat)) >= 1)
+                                        (int*) &resultData->stat)) >= 1)
                     {
                         if( (items = parseCOPSListItems( list->_pCurrent, tmpLongAlphaOper, 
                                      tmpShortAlphaOper, tmpNumericOper )) >= 1 )
                         {
-fprintf(stderr, "scanned %d item(s).\n", items);
-fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
-fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
+// fprintf(stderr, "scanned %d item(s).\n", items);
+// fprintf(stderr, "                  :>%s<\n", tmpLongAlphaOper );
+// fprintf(stderr, "                  :>%s<\n", tmpShortAlphaOper );
+// fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
 
-                            resultData->_longAlphaOper  = tmpLongAlphaOper;
-                            resultData->_shortAlphaOper = tmpShortAlphaOper;
-                            resultData->_numericOper    = tmpNumericOper;
+                            resultData->longAlphaOper  = tmpLongAlphaOper;
+                            resultData->shortAlphaOper = tmpShortAlphaOper;
+                            resultData->numericOper    = tmpNumericOper;
 
                             retVal = GSMDEVICE_SUCCESS;
                         }
@@ -5367,7 +5599,7 @@ fprintf(stderr, "                  :>%s<\n", tmpNumericOper );
                 {
                     retVal = GSMDEVICE_LIST_E_NULL;
                 }
-            }
+//            }
         }
     }
     else
@@ -5445,21 +5677,21 @@ INT16 gsmDevice::parseCOPS( gsmCommandMode cmdMode, STRING response, char _patte
                         switch( cmdMode )
                         {
                             case cmd_test:
-                                pData->_list = _tmpRawString;
+                                pData->list = _tmpRawString;
                                 retVal = GSMDEVICE_SUCCESS;
                                 break;
                             case cmd_read:
                                 memset( tmpBuffer, '\0', sizeof( tmpBuffer) );
                                 if( sscanf(_tmpRawString, readResponseFmtCOPS, 
-                                    (int*) &pData->_selectMode, (int*) &pData->_format, tmpBuffer ) >= 1 )
+                                    (int*) &pData->selectMode, (int*) &pData->format, tmpBuffer ) >= 1 )
                                 {
                                     if( strlen(tmpBuffer) )
                                     {
-                                        pData->_oper = tmpBuffer;
+                                        pData->oper = tmpBuffer;
                                     }
 
 #ifdef linux
-// fprintf(stderr, "COPS: pData->_selectMode: %d, pData->_format: %d, pData->_oper: %s\n", pData->_selectMode, pData->_format, pData->_oper.c_str() );
+// fprintf(stderr, "COPS: pData->selectMode: %d, pData->format: %d, pData->oper: %s\n", pData->selectMode, pData->format, pData->oper.c_str() );
 #endif
 
                                     retVal = GSMDEVICE_SUCCESS;
