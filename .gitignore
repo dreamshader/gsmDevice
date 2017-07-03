@@ -5,4 +5,5 @@ testGSM
 testGSM.c
 Makefile
 temp/
+bak/
 
