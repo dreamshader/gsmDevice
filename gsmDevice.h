@@ -97,8 +97,9 @@ extern "C" {
 #define GSMDEVICE_SYNC_RSP            "OK"
 #define GSMDEVICE_READ_TIMEOUT      30000   // up to 30 sec. response time
 #define GSMDEVICE_READ_DELAY          100
-#define GSMDEVICE_MIN_PHONE_NUM         3
-#define GSMDEVICE_MIN_SMS_MSGLEN        1
+#define GSMDEVICE_MIN_PHONE_NUM         3   // minimum length of a phone number
+#define GSMDEVICE_MIN_SMS_MSGLEN        1   // minimum length of sms message
+#define GSMDEVICE_SEND_SMS_DELAY        2   // delay to wait for response in sec
 //
 // parameter values
 

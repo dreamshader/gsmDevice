@@ -2467,7 +2467,7 @@ INT16 gsmDevice::sendSMSMessage( gsmCommandMode cmdMode, _dataCMGS *pData,
                                 if((retVal=sendCommand(command, true, 
                                                   GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                                 {
-sleep(2);
+                                    sleep(GSMDEVICE_SEND_SMS_DELAY);
                                     if( (retVal = readResponse( result, false, 
                                                  GSMDEVICE_NO_TIMEOUT )) == GSMDEVICE_SUCCESS )
                                     {
@@ -2492,7 +2492,7 @@ sleep(2);
                                     if((retVal=sendCommand(command, true, 
                                                       GSMDEVICE_NO_TIMEOUT)) == GSMDEVICE_SUCCESS)
                                     {
-sleep(2);
+                                        sleep(GSMDEVICE_SEND_SMS_DELAY);
                                         if( (retVal = readResponse( result, false, 
                                                      GSMDEVICE_NO_TIMEOUT )) == GSMDEVICE_SUCCESS )
                                         {
@@ -2517,10 +2517,6 @@ sleep(2);
             retVal = GSMDEVICE_E_P_NULL;
         }
     }
-
-
-
-
 
     return( _lastError = retVal );
 }
@@ -5853,6 +5849,7 @@ http://139.7.24.1/servlets/mms
 Beachten Sie die Groß- und Kleinschreibung.
 APN
 Auch: Zugangspunkt oder Adresse 	event.vodafone.de
+Auch: Zugangspunkt oder Adresse 	web.vodafone.de
 Lassen Sie die Felder Nutzer- oder Benutzername und Kennwort leer.
 IP-Adresse
 Auch: IP-Einstellung, Gateway-Adresse, Relayserver-URL, MMS-Relayserver oder Proxy-Adresse. 	139.007.029.017
@@ -5868,6 +5865,71 @@ Abbruchzeit 	180 Sekunden
 Typ des Proxy 	http
 Authentifizierungsart 	CHAP
 
+
+
+OK
+AT+CGATT=0
+OK
+at+cstt=?
++CSTT: "APN", "USER", "PWD"
+
+OK
+at+cstt?
++CSTT: "web.vodafone.dede",  "", ""
+
+OK
+at+cstt="web.vodafone","",""
+OK
+at+cstt?
++CSTT: "web.vodafone.dede",  "", ""
+
+OK
+at+cstt="event.vodafone","",""
+OK
+at+cstt="web.vodafone","",""
+OK
+at+cstt?
++CSTT: "web.vodafoneneede",  "", ""
+
+OK
+at+cstt="","",""
+OK
+at+cstt="web.vodafone","",""
+OK
+at+cstt?
++CSTT: "web.vodafoneneede",  "", ""
+
+OK
+at+cstt="","",""
+OK
+AT+CSTT=?free?,??,??
++CME ERROR:58
+AT+CSTT=?free?,??,??
++CME ERROR:58
+at+cstt="web.vodafone","",""
+OK
+AT+CGDCONT=1,?IP?,?web.vodafone.de?
++CME ERROR:53
+AT+CGDCONT=1,IP,web.vodafone.de
+OK
+AT+CGATT=1
+OK
+at+ciicr
+OK
+at+cifsr
+100.64.164.65
+
+OK
+AT+CIPSTART="TCP","www.forum-raspberrypi.de",80
+CONNECT OK
+
+OK
+AT+CIPCLOSE
+OK
+AT+CIPSHUT
+OK
+AT+CGATT=0
+OK
 
 
 #endif // NEVERDEF
